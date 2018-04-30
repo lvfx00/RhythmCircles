@@ -1,5 +1,15 @@
 package ru.nsu.fit.semenov.rhythmcircles;
 
-public class GameEvent {
+import java.time.Duration;
 
+enum EventType {TAP};
+
+public interface GameEvent {
+    EventType getEventType();
+
+    Duration getBeginningTime();
+
+    Duration getEventDuration();
+
+    boolean finished(Duration time);
 }
