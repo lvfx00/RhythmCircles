@@ -12,6 +12,7 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
+import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 
 import java.time.Duration;
 
@@ -26,17 +27,18 @@ public class MainApplication extends Application {
 
         Group root = new Group();
         Scene scene = new Scene(root, 800, 600, Color.BLACK);
+        scene.getStylesheets().add("ru/nsu/fit/semenov/rhythmcircles/style.css");
         primaryStage.setScene(scene);
 
         Group circlesGroup = new Group();
         circlesGroup.setEffect(new BoxBlur(10, 10, 3));
 
         RhythmMap rhythmMap = new RhythmMap();
-        rhythmMap.addEvent(new TapEvent(100, 100, Duration.ofSeconds(10)));
-        rhythmMap.addEvent(new TapEvent(200, 200, Duration.ofSeconds(20)));
-        rhythmMap.addEvent(new TapEvent(300, 300, Duration.ofSeconds(30)));
+        rhythmMap.addEvent(new TapEvent(100, 100, Duration.ofSeconds(3)));
+        rhythmMap.addEvent(new TapEvent(200, 200, Duration.ofSeconds(6)));
+        rhythmMap.addEvent(new TapEvent(300, 300, Duration.ofSeconds(9)));
         GameModel gameModel = new GameModel(rhythmMap);
-        MyPresenter myPresenter = new MyPresenter(gameModel, circlesGroup);
+        MyPresenter myPresenter = new MyPresenter(gameModel, root, circlesGroup);
         gameModel.registerPresenter(myPresenter);
 
         Rectangle colors = new Rectangle(scene.getWidth(), scene.getHeight(),

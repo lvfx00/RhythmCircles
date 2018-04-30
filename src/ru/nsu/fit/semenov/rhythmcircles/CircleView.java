@@ -6,10 +6,10 @@ import javafx.scene.shape.StrokeType;
 
 public class CircleView extends Circle {
     CircleView() {
-        super(100, Color.web("white", 0.05));
+        super(80, Color.web("white", 0.05));
 
         setStrokeType(StrokeType.OUTSIDE);
-        setStroke(Color.web("white", 0.16));
+        setStroke(Color.web("white", 0.5));
         setStrokeWidth(4);
     };
 }

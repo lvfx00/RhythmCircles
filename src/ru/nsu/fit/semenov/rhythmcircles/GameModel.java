@@ -1,5 +1,7 @@
 package ru.nsu.fit.semenov.rhythmcircles;
 
+import ru.nsu.fit.semenov.rhythmcircles.events.GameEvent;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -19,7 +21,6 @@ public class GameModel {
 
         // add new events from queue
         while (rhythmMap.hasNext(currTime)) {
-            System.out.println("axaxaxa");
             GameEvent gameEvent = rhythmMap.getNext();
             for (GamePresenter presenter : registeredPresenters) {
                 presenter.addEventView(gameEvent);
@@ -31,6 +32,7 @@ public class GameModel {
         for (GameEvent gameEvent : eventsOnScreen) {
             if (gameEvent.finished(currTime)) {
                 for (GamePresenter presenter : registeredPresenters) {
+                    presenter.showScores(gameEvent, gameEvent.getScores());
                     presenter.removeEventView(gameEvent);
                 }
                 eventsOnScreen.remove(gameEvent);

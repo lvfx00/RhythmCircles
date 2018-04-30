@@ -1,5 +1,7 @@
 package ru.nsu.fit.semenov.rhythmcircles;
 
+import ru.nsu.fit.semenov.rhythmcircles.events.GameEvent;
+
 import java.time.Duration;
 import java.util.LinkedList;
 
