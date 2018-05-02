@@ -3,7 +3,9 @@ package ru.nsu.fit.semenov.rhythmcircles;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.event.EventHandler;
 import javafx.scene.Group;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
 import ru.nsu.fit.semenov.rhythmcircles.events.GameEvent;
@@ -28,6 +30,10 @@ public class MyPresenter implements GamePresenter {
                 // TODO add showing animation
                 circlesGroup.getChildren().add(circle);
 
+                circle.addEventFilter(MouseEvent.MOUSE_PRESSED,
+                        mouseEvent -> viewToEvnt.get(circle).tap());
+
+
                 evntToView.put((TapEvent) ge, circle);
                 viewToEvnt.put(circle, (TapEvent) ge);
                 break;
@@ -38,12 +44,12 @@ public class MyPresenter implements GamePresenter {
     public void removeEventView(GameEvent gameEvent) {
         switch (gameEvent.getEventType()) {
             case TAP:
-                CircleView circle = evntToView.get((TapEvent) gameEvent);
+                CircleView circle = evntToView.get(gameEvent);
 
                 // TODO add disappearing animation
                 circlesGroup.getChildren().remove(circle);
 
-                evntToView.remove((TapEvent) gameEvent);
+                evntToView.remove(gameEvent);
                 viewToEvnt.remove(circle);
                 break;
         }
@@ -83,10 +89,12 @@ public class MyPresenter implements GamePresenter {
         timeline.play();
     }
 
+
     private final Group rootGroup;
     private final Group circlesGroup;
     private final GameModel gameModel;
     private HashMap<TapEvent, CircleView> evntToView = new HashMap<>();
     private HashMap<CircleView, TapEvent> viewToEvnt = new HashMap<>();
+
 
 }

@@ -15,8 +15,12 @@ import javafx.stage.Stage;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 
 import java.time.Duration;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MainApplication extends Application {
+    public static final int SCREEN_WIDTH = 800;
+    public static final int SCREEN_HEIGHT = 600;
 
     public static void main(String[] args) {
         launch(args);
@@ -26,20 +30,12 @@ public class MainApplication extends Application {
     public void start(Stage primaryStage) {
 
         Group root = new Group();
-        Scene scene = new Scene(root, 800, 600, Color.BLACK);
+        Scene scene = new Scene(root, SCREEN_WIDTH, SCREEN_HEIGHT, Color.BLACK);
         scene.getStylesheets().add("ru/nsu/fit/semenov/rhythmcircles/style.css");
         primaryStage.setScene(scene);
 
         Group circlesGroup = new Group();
         circlesGroup.setEffect(new BoxBlur(10, 10, 3));
-
-        RhythmMap rhythmMap = new RhythmMap();
-        rhythmMap.addEvent(new TapEvent(100, 100, Duration.ofSeconds(3)));
-        rhythmMap.addEvent(new TapEvent(200, 200, Duration.ofSeconds(6)));
-        rhythmMap.addEvent(new TapEvent(300, 300, Duration.ofSeconds(9)));
-        GameModel gameModel = new GameModel(rhythmMap);
-        MyPresenter myPresenter = new MyPresenter(gameModel, root, circlesGroup);
-        gameModel.registerPresenter(myPresenter);
 
         Rectangle colors = new Rectangle(scene.getWidth(), scene.getHeight(),
                 new LinearGradient(0f, 1f, 1f, 0f, true, CycleMethod.NO_CYCLE,
@@ -54,12 +50,28 @@ public class MainApplication extends Application {
         colors.widthProperty().bind(scene.widthProperty());
         colors.heightProperty().bind(scene.heightProperty());
 
-        Group blendModeGroup =
-                new Group(new Group(new Rectangle(scene.getWidth(), scene.getHeight(),
-                        Color.BLACK), circlesGroup), colors);
-        colors.setBlendMode(BlendMode.OVERLAY);
+
+        Group tempGroup = new Group(new Rectangle(scene.getWidth(), scene.getHeight(),
+                Color.BLACK), circlesGroup);
+
+        Group blendModeGroup = new Group(colors, tempGroup);
+        tempGroup.setBlendMode(BlendMode.HARD_LIGHT);
         root.getChildren().add(blendModeGroup);
 
+
+        RhythmMap rhythmMap = new RhythmMap();
+
+        for (int j = 0; j < 100; ++j) {
+            rhythmMap.addEvent(new TapEvent(
+                            ThreadLocalRandom.current().nextInt(CircleView.RADIUS * 2, SCREEN_WIDTH - CircleView.RADIUS * 2),
+                            ThreadLocalRandom.current().nextInt(CircleView.RADIUS * 2, SCREEN_HEIGHT - CircleView.RADIUS * 2)),
+                    Duration.ofSeconds(j));
+        }
+
+
+        GameModel gameModel = new GameModel(rhythmMap);
+        MyPresenter myPresenter = new MyPresenter(gameModel, root, circlesGroup);
+        gameModel.registerPresenter(myPresenter);
         gameModel.start();
 
         AnimationTimer animator = new AnimationTimer() {
