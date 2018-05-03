@@ -12,6 +12,7 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
+import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 
 import java.time.Duration;
@@ -60,12 +61,15 @@ public class MainApplication extends Application {
 
         RhythmMap rhythmMap = new RhythmMap();
 
-        for (int j = 0; j < 100; ++j) {
-            rhythmMap.addEvent(new TapEvent(
-                            ThreadLocalRandom.current().nextInt(CircleView.RADIUS * 2, SCREEN_WIDTH - CircleView.RADIUS * 2),
-                            ThreadLocalRandom.current().nextInt(CircleView.RADIUS * 2, SCREEN_HEIGHT - CircleView.RADIUS * 2)),
-                    Duration.ofMillis(j * 750));
-        }
+        rhythmMap.addEvent(new SlideEvent(400, 100, 100 , 400, 2, Duration.ofMillis(1000)),
+                Duration.ofMillis(1000));
+
+//        for (int j = 0; j < 100; ++j) {
+//            rhythmMap.addEvent(new TapEvent(
+//                            ThreadLocalRandom.current().nextInt(TapView.RADIUS * 2, SCREEN_WIDTH - TapView.RADIUS * 2),
+//                            ThreadLocalRandom.current().nextInt(TapView.RADIUS * 2, SCREEN_HEIGHT - TapView.RADIUS * 2)),
+//                    Duration.ofMillis(j * 750));
+//        }
 
         GameModel gameModel = new GameModel(rhythmMap);
         MyPresenter myPresenter = new MyPresenter(root, circlesGroup);

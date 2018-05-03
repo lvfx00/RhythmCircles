@@ -8,24 +8,29 @@ import javafx.scene.effect.BoxBlur;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
-import ru.nsu.fit.semenov.rhythmcircles.events.GameEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
+import ru.nsu.fit.semenov.rhythmcircles.views.TapView;
 
 import java.util.HashMap;
 
+import static ru.nsu.fit.semenov.rhythmcircles.views.TapView.RADIUS;
+
 public class MyPresenter implements GamePresenter {
+
     public MyPresenter(Group root, Group cg) {
         circlesGroup = cg;
         rootGroup = root;
     }
 
+
     @Override
     public void addTapEventView(TapEvent tapEvent) {
-        CircleView circle = new CircleView();
+        TapView circle = new TapView();
         circle.setCenterX(tapEvent.getX());
         circle.setCenterY(tapEvent.getY());
         circle.setOpacity(0);
@@ -63,7 +68,7 @@ public class MyPresenter implements GamePresenter {
                 // convert java.time.Duration to javafx.util.Duration
                 new KeyFrame(Duration.millis(TapEvent.TOO_EARLY.plus(TapEvent.REGULAR).
                         plus(TapEvent.PERFECT).toMillis()),
-                        new KeyValue(ring.radiusProperty(), CircleView.RADIUS)));
+                        new KeyValue(ring.radiusProperty(), RADIUS)));
 
         ringTimeline.setOnFinished(event -> rootGroup.getChildren().remove(ring));
         ringTimeline.play();
@@ -72,7 +77,7 @@ public class MyPresenter implements GamePresenter {
 
     @Override
     public void removeTapEventView(TapEvent tapEvent) {
-        CircleView circle = tapEvntToView.get(tapEvent);
+        TapView circle = tapEvntToView.get(tapEvent);
 
         Timeline timeline = new Timeline();
         timeline.getKeyFrames().addAll(
@@ -92,8 +97,80 @@ public class MyPresenter implements GamePresenter {
         showScores(x, y, tapEvent.getScores());
     }
 
+
     @Override
     public void addSlideEventView(SlideEvent slideEvent) {
+        TapView startCircle = new TapView();
+        TapView finishCircle = new TapView();
+
+        startCircle.setCenterX(slideEvent.getStartX());
+        startCircle.setCenterY(slideEvent.getStartY());
+        finishCircle.setCenterX(slideEvent.getFinishX());
+        finishCircle.setCenterY(slideEvent.getFinishY());
+
+        double rectWidth = Math.sqrt(
+                        Math.pow(slideEvent.getFinishX() - slideEvent.getStartX(), 2.0) +
+                        Math.pow(slideEvent.getFinishY() - slideEvent.getStartY(), 2.0));
+        double rectHeight = 2 * TapView.RADIUS;
+
+        Rectangle pathRectangle = new Rectangle(rectWidth, rectHeight, Color.web("white", 0.05));
+        pathRectangle.setStrokeType(StrokeType.OUTSIDE);
+        pathRectangle.setStroke(Color.web("white", 0.6));
+        pathRectangle.setStrokeWidth(4);
+
+        // set center of rectangle to path center
+        double rectCenterX = (slideEvent.getStartX() + slideEvent.getFinishX()) / 2;
+        double rectCenterY = (slideEvent.getStartY() + slideEvent.getFinishY()) / 2;
+        pathRectangle.setX(rectCenterX - rectWidth / 2);
+        pathRectangle.setY(rectCenterY - rectHeight / 2);
+
+        // rotate rectangle
+        double rotationDegree = Math.toDegrees(Math.atan( (slideEvent.getFinishY() - slideEvent.getStartY()) /
+                (slideEvent.getFinishX() - slideEvent.getStartX())));
+        pathRectangle.setRotate(rotationDegree);
+
+        Group slideGroup = new Group(pathRectangle, startCircle, finishCircle);
+
+        slideGroup.setOpacity(0);
+
+        slideEvntToView.put(slideEvent, slideGroup);
+        viewToSlideEvnt.put(slideGroup, slideEvent);
+
+        circlesGroup.getChildren().add(slideGroup);
+
+        // event handlers
+        startCircle.addEventFilter(MouseEvent.MOUSE_PRESSED, mouseEvent -> slideEvent.tap());
+
+        // showing animation
+        Timeline showingTimeline = new Timeline();
+        showingTimeline.getKeyFrames().addAll(
+                new KeyFrame(Duration.millis(300),
+                        new KeyValue(slideGroup.opacityProperty(), 1)));
+        showingTimeline.play();
+
+
+        // add ring animation
+        Circle ring = new Circle(150, Color.web("white", 0));
+        ring.setCenterX(slideEvent.getStartX());
+        ring.setCenterY(slideEvent.getStartY());
+        ring.setStrokeType(StrokeType.OUTSIDE);
+        ring.setStroke(Color.web("white", 0.7));
+        ring.setStrokeWidth(2);
+        ring.setEffect(new BoxBlur(10, 10, 3));
+        ring.setMouseTransparent(true);
+
+        rootGroup.getChildren().add(ring);
+        Timeline ringTimeline = new Timeline();
+        ringTimeline.getKeyFrames().addAll(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(ring.radiusProperty(), 150)),
+                // convert java.time.Duration to javafx.util.Duration
+                new KeyFrame(Duration.millis(TapEvent.TOO_EARLY.plus(TapEvent.REGULAR).
+                        plus(TapEvent.PERFECT).toMillis()),
+                        new KeyValue(ring.radiusProperty(), RADIUS)));
+
+        ringTimeline.setOnFinished(event -> rootGroup.getChildren().remove(ring));
+        ringTimeline.play();
 
     }
 
@@ -127,8 +204,11 @@ public class MyPresenter implements GamePresenter {
     private final Group rootGroup;
     private final Group circlesGroup;
 
-    private HashMap<TapEvent, CircleView> tapEvntToView = new HashMap<>();
-    private HashMap<CircleView, TapEvent> viewToTapEvnt = new HashMap<>();
+    private HashMap<TapEvent, TapView> tapEvntToView = new HashMap<>();
+    private HashMap<TapView, TapEvent> viewToTapEvnt = new HashMap<>();
+
+    private HashMap<SlideEvent, Group> slideEvntToView = new HashMap<>();
+    private HashMap<Group, SlideEvent> viewToSlideEvnt = new HashMap<>();
 
 
 }
