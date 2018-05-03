@@ -62,7 +62,7 @@ public class MainApplication extends Application {
 
         RhythmMap rhythmMap = new RhythmMap();
 
-        rhythmMap.addEvent(new SlideEvent(400, 100, 100 , 400, 2, Duration.ofMillis(1000)),
+        rhythmMap.addEvent(new SlideEvent(400, 100, 100, 400, 2, Duration.ofMillis(4000)),
                 Duration.ofMillis(1000));
 
 //        rhythmMap.addEvent(new TapEvent(500, 500), Duration.ofMillis(1000));
@@ -74,15 +74,15 @@ public class MainApplication extends Application {
 //                    Duration.ofMillis(j * 750));
 //        }
 
-        GameModel gameModel = new GameModel(rhythmMap);
+        MyGameModel myGameModel = new MyGameModel(rhythmMap);
         MyPresenter myPresenter = new MyPresenter(root, circlesGroup);
-        gameModel.registerPresenter(myPresenter);
-        gameModel.start();
+        myGameModel.registerPresenter(myPresenter);
+        myGameModel.start();
 
         AnimationTimer animator = new AnimationTimer() {
             @Override
             public void handle(long arg0) {
-                gameModel.update();
+                myGameModel.update();
             }
         };
         animator.start();

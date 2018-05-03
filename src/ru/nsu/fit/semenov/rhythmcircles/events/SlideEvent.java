@@ -1,9 +1,17 @@
 package ru.nsu.fit.semenov.rhythmcircles.events;
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import ru.nsu.fit.semenov.rhythmcircles.GamePresenter;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedList;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.*;
 
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.SLIDE;
@@ -12,14 +20,16 @@ enum SlideEventStatus {
     NOT_STARTED,
     AWAITING_TAP,
     SLIDING,
-    FINISHED
+    FINISHED,
+    RELEASED
 }
 
 public class SlideEvent implements GameEvent {
     public static final Duration TOO_EARLY = Duration.ofMillis(750); // 0 scores
     public static final Duration REGULAR = Duration.ofMillis(500); // 100 scores
     public static final Duration PERFECT = Duration.ofMillis(250); // 300 scores
-    public static final Duration TOO_LATE = Duration.ofMillis(500); // 50 scores
+
+    public static final Duration BEFORE_SLIDING = Duration.ofMillis(1500);
 
     public SlideEvent(double x1, double y1, double x2, double y2, int checkPointsNumber, Duration slideDuration) {
         this.startX = x1;
@@ -34,26 +44,51 @@ public class SlideEvent implements GameEvent {
     }
 
     @Override
-    public void start(Clock clock) {
+    public void start(Clock clock, Set<GamePresenter> presenters) {
         // set clocks for this event
         this.clock = clock;
         beginningTime = clock.instant();
+        presentersSet = presenters;
+
         eventStatus = SlideEventStatus.AWAITING_TAP;
 
+        Timeline fiveSecondsWonder = new Timeline(new KeyFrame(javafx.util.Duration.millis(BEFORE_SLIDING.toMillis()),
+                new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent event) {
+                startSliding();
+            }
+        }));
+        fiveSecondsWonder.play();
+
+        /*
+        new Timer().schedule(
+                new TimerTask() {
+
+                    @Override
+                    public void run() {
+                        startSliding();
+                    }
+                }, 0, BEFORE_SLIDING.toMillis());
+                */
+
+        /*
         // set checks for mouse position in check point time and end of event
-        executor = Executors.newSingleThreadScheduledExecutor();
+        executor = Executors.newScheduledThreadPool(4);
+
+        // start sliding after tap event passing
+        executor.schedule(this::startSliding, BEFORE_SLIDING.toMillis(), TimeUnit.MILLISECONDS);
 
         long checkInterval = slideDuration.toMillis() / (checkPointsNumber + 1);
-
         for (int i = 1; i <= checkPointsNumber; ++i) {
-            Future<Boolean> resultFuture =
-                    executor.schedule(() -> inMovingCircle, checkInterval * i, TimeUnit.MILLISECONDS);
-            checkPointsResultList.add(resultFuture);
+            executor.schedule(this::checkPoint, BEFORE_SLIDING.toMillis() + checkInterval * i, TimeUnit.MILLISECONDS);
         }
 
-        // for second big circle
-        lastCircleResult = executor.schedule(() -> inMovingCircle, slideDuration.toMillis(), TimeUnit.MILLISECONDS);
+        executor.schedule(this::lastPoint, BEFORE_SLIDING.toMillis() + slideDuration.toMillis(), TimeUnit.MILLISECONDS);
+        */
     }
+
 
     public void tap() {
         if (eventStatus == SlideEventStatus.AWAITING_TAP) {
@@ -63,24 +98,20 @@ public class SlideEvent implements GameEvent {
 
             } else if (Duration.between(beginningTime, clock.instant()).
                     compareTo(TOO_EARLY.plus(REGULAR)) < 0) {
-                scores += 100;
+                scores += 50;
+                startSliding();
 
             } else if (Duration.between(beginningTime, clock.instant()).
                     compareTo(TOO_EARLY.plus(REGULAR).plus(PERFECT)) < 0) {
-                scores += 300;
-
-            } else if (Duration.between(beginningTime, clock.instant()).
-                    compareTo(TOO_EARLY.plus(REGULAR).plus(PERFECT).plus(TOO_LATE)) < 0) {
-                scores += 50;
+                scores += 100;
+                startSliding();
             }
-
-            eventStatus = SlideEventStatus.SLIDING;
-            inMovingCircle = true;
         }
     }
 
+
     public void release() {
-        eventStatus = SlideEventStatus.FINISHED;
+//        eventStatus = SlideEventStatus.RELEASED;
     }
 
     public void setInMovingCircle(boolean b) {
@@ -116,41 +147,45 @@ public class SlideEvent implements GameEvent {
     @Override
     public int getScores() {
         if (eventStatus == SlideEventStatus.FINISHED) {
-
             if (!executor.isShutdown()) {
-                for (Future<Boolean> futureResult : checkPointsResultList) {
-                    if (futureResult.isDone()) {
-                        try {
-                            boolean result = futureResult.get();
-                            if (result) {
-                                scores += 50;
-                            }
-                        } catch (InterruptedException | ExecutionException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        futureResult.cancel(true);
-                    }
-                }
-
-                if (lastCircleResult.isDone()) {
-                    try {
-                        boolean result = lastCircleResult.get();
-                        if (result) {
-                            scores += 150;
-                        }
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    lastCircleResult.cancel(true);
-                }
-
-                executor.shutdown();
+                executor.shutdownNow();
             }
             return scores;
         }
         return 0;
+    }
+
+    public Duration getSlideDuration() {
+        return slideDuration;
+    }
+
+    private void startSliding() {
+        if(SlideEventStatus.AWAITING_TAP == eventStatus) {
+            eventStatus = SlideEventStatus.SLIDING;
+            for (GamePresenter gp : presentersSet) {
+                gp.startSliding(this);
+            }
+            inMovingCircle = true;
+        }
+    }
+
+    private void checkPoint() {
+        if(inMovingCircle && SlideEventStatus.SLIDING == eventStatus) {
+            scores += 25;
+            for (GamePresenter gp : presentersSet) {
+                gp.pulse(this);
+            }
+        }
+    }
+
+    private void lastPoint() {
+        if(inMovingCircle && SlideEventStatus.SLIDING == eventStatus) {
+            scores += 100;
+            for (GamePresenter gp : presentersSet) {
+                gp.pulse(this);
+            }
+        }
+        eventStatus = SlideEventStatus.FINISHED;
     }
 
     private final double startX;
@@ -164,9 +199,8 @@ public class SlideEvent implements GameEvent {
     private boolean inMovingCircle;
     private int scores;
 
-    ScheduledExecutorService executor;
-    private LinkedList<Future<Boolean>> checkPointsResultList = new LinkedList<>();
-    private Future<Boolean> lastCircleResult;
+    private ScheduledExecutorService executor;
+    private Set<GamePresenter> presentersSet;
 
     private Clock clock;
     private Instant beginningTime;

@@ -1,8 +1,11 @@
 package ru.nsu.fit.semenov.rhythmcircles.events;
 
+import ru.nsu.fit.semenov.rhythmcircles.GamePresenter;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.TAP;
 
@@ -28,7 +31,7 @@ public class TapEvent implements GameEvent {
     }
 
     @Override
-    public void start(Clock clock) {
+    public void start(Clock clock, Set<GamePresenter> presenters) {
         // set clocks for this event
         this.clock = clock;
         beginningTime = clock.instant();

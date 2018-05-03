@@ -12,4 +12,9 @@ public interface GamePresenter {
 
     void removeSlideEventView(SlideEvent slideEvent);
 
+    void startSliding(SlideEvent slideEvent);
+
+    // trigger pulse animation for successful check points
+    void pulse(SlideEvent slideEvent);
+
 }

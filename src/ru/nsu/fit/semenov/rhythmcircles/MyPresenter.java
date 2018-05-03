@@ -5,14 +5,20 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.scene.Group;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.StrokeType;
 import javafx.util.Duration;
 import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 import ru.nsu.fit.semenov.rhythmcircles.views.Animations;
 import ru.nsu.fit.semenov.rhythmcircles.views.SlideView;
 import ru.nsu.fit.semenov.rhythmcircles.views.TapView;
+import ru.nsu.fit.semenov.rhythmcircles.views.ViewParams;
 
 import java.util.HashMap;
+
+import static ru.nsu.fit.semenov.rhythmcircles.views.ViewParams.RADIUS;
 
 public class MyPresenter implements GamePresenter {
 
@@ -118,12 +124,52 @@ public class MyPresenter implements GamePresenter {
         timeline.play();
     }
 
+    @Override
+    public void startSliding(SlideEvent slideEvent) {
+        if(slideEvntToView.containsKey(slideEvent)) {
+            System.out.println("sliding!!!");
+
+            Circle innerCircle = new Circle(RADIUS, Color.web("white", 0.05));
+
+            innerCircle.setStrokeType(StrokeType.OUTSIDE);
+            innerCircle.setStroke(Color.web("white", 0.7));
+            innerCircle.setStrokeWidth(4);
+
+            innerCircle.setCenterX(slideEvent.getStartX());
+            innerCircle.setCenterY(slideEvent.getStartY());
+
+            Circle outerCircle = new Circle(RADIUS + 30, Color.web("white", 0));
+
+            outerCircle.setStrokeType(StrokeType.OUTSIDE);
+            outerCircle.setStroke(Color.web("white", 0.7));
+            outerCircle.setStrokeWidth(4);
+
+            outerCircle.setCenterX(slideEvent.getStartX());
+            outerCircle.setCenterY(slideEvent.getStartY());
+
+            Group scope = new Group(innerCircle, outerCircle);
+
+            rootGroup.getChildren().addAll(scope);
+
+            Timeline slidingTimeline = new Timeline();
+            slidingTimeline.getKeyFrames().addAll(
+                    new KeyFrame(Duration.millis(slideEvent.getSlideDuration().toMillis()),
+                            new KeyValue(outerCircle.centerXProperty(), slideEvent.getFinishX()),
+                            new KeyValue(outerCircle.centerYProperty(), slideEvent.getFinishY())));
+
+            slidingTimeline.setOnFinished(event -> rootGroup.getChildren().remove(circlesGroup));
+            slidingTimeline.play();
+        }
+    }
+
+    @Override
+    public void pulse(SlideEvent slideEvent) {
+
+    }
+
     private final Group rootGroup;
     private final Group circlesGroup;
 
     private HashMap<TapEvent, TapView> tapEvntToView = new HashMap<>();
-
     private HashMap<SlideEvent, SlideView> slideEvntToView = new HashMap<>();
-
-
 }
