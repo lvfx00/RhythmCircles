@@ -1,7 +1,8 @@
 package ru.nsu.fit.semenov.rhythmcircles;
 
-import ru.nsu.fit.semenov.rhythmcircles.events.EventStatus;
 import ru.nsu.fit.semenov.rhythmcircles.events.GameEvent;
+import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
+import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -28,7 +29,14 @@ public class GameModel {
             gameEvent.start(clock);
 
             for (GamePresenter presenter : registeredPresenters) {
-                presenter.addEventView(gameEvent);
+                switch (gameEvent.getEventType()) {
+                    case TAP:
+                        presenter.addTapEventView((TapEvent) gameEvent);
+                        break;
+                    case SLIDE:
+                        presenter.addSlideEventView((SlideEvent) gameEvent);
+                        break;
+                }
             }
 
             eventsOnScreen.put(gameEvent, Boolean.TRUE);
@@ -36,11 +44,17 @@ public class GameModel {
 
         // remove outdated views
         for (GameEvent gameEvent : eventsOnScreen.keySet()) {
-            if (EventStatus.FINISHED == gameEvent.getStatus()) {
+            if (gameEvent.isFinished()) {
                 for (GamePresenter presenter : registeredPresenters) {
                     scoreSum += gameEvent.getScores();
-                    presenter.showScores(gameEvent, gameEvent.getScores());
-                    presenter.removeEventView(gameEvent);
+                    switch (gameEvent.getEventType()) {
+                        case TAP:
+                            presenter.removeTapEventView((TapEvent) gameEvent);
+                            break;
+                        case SLIDE:
+                            presenter.removeSlideEventView((SlideEvent) gameEvent);
+                            break;
+                    }
                 }
                 eventsOnScreen.remove(gameEvent);
             }

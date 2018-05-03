@@ -1,11 +1,15 @@
 package ru.nsu.fit.semenov.rhythmcircles;
 
-import ru.nsu.fit.semenov.rhythmcircles.events.GameEvent;
+import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
+import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 
 public interface GamePresenter {
-    void addEventView(GameEvent ge);
+    void addTapEventView(TapEvent tapEvent);
 
-    void removeEventView(GameEvent ge);
+    void removeTapEventView(TapEvent tapEvent);
 
-    void showScores(GameEvent ge, int sores);
+    void addSlideEventView(SlideEvent slideEvent);
+
+    void removeSlideEventView(SlideEvent slideEvent);
+
 }

@@ -15,7 +15,6 @@ import javafx.stage.Stage;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 
 import java.time.Duration;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MainApplication extends Application {
@@ -65,12 +64,11 @@ public class MainApplication extends Application {
             rhythmMap.addEvent(new TapEvent(
                             ThreadLocalRandom.current().nextInt(CircleView.RADIUS * 2, SCREEN_WIDTH - CircleView.RADIUS * 2),
                             ThreadLocalRandom.current().nextInt(CircleView.RADIUS * 2, SCREEN_HEIGHT - CircleView.RADIUS * 2)),
-                    Duration.ofSeconds(j));
+                    Duration.ofMillis(j * 750));
         }
 
-
         GameModel gameModel = new GameModel(rhythmMap);
-        MyPresenter myPresenter = new MyPresenter(gameModel, root, circlesGroup);
+        MyPresenter myPresenter = new MyPresenter(root, circlesGroup);
         gameModel.registerPresenter(myPresenter);
         gameModel.start();
 
