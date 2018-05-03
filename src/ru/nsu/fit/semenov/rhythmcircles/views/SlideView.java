@@ -5,10 +5,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
+import ru.nsu.fit.semenov.rhythmcircles.views.animations.Animation;
+import ru.nsu.fit.semenov.rhythmcircles.views.animations.AnimationCarrier;
+
+import java.util.ArrayList;
 
 import static ru.nsu.fit.semenov.rhythmcircles.views.ViewParams.RADIUS;
 
-public class SlideView extends Group {
+public class SlideView extends Group implements AnimationCarrier {
 
     public SlideView(double x1, double y1, double x2, double y2) {
         startCircle = new Circle(RADIUS, Color.web("white", 0.05));
@@ -60,6 +64,24 @@ public class SlideView extends Group {
     public Rectangle getPathRectangle() {
         return pathRectangle;
     }
+
+    @Override
+    public void addAnimation(Animation animation) {
+        animationList.add(animation);
+        animation.run();
+    }
+
+    @Override
+    public void removeAllAnimations() {
+        for(Animation an : animationList) {
+            if(!an.finished()) {
+                an.stop();
+            }
+        }
+        animationList.clear();
+    }
+
+    private ArrayList<Animation> animationList = new ArrayList<>();
 
     private Circle startCircle;
     private Circle finishCircle;

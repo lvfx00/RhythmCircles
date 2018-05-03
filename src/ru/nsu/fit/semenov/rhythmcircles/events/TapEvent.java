@@ -1,21 +1,20 @@
 package ru.nsu.fit.semenov.rhythmcircles.events;
 
-import ru.nsu.fit.semenov.rhythmcircles.GamePresenter;
+import ru.nsu.fit.semenov.rhythmcircles.GameModel;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Set;
 
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.TAP;
 
-enum TapEventStatus {
-    NOT_STARTED,
-    IN_PROGRESS,
-    FINISHED
-}
-
 public class TapEvent implements GameEvent {
+    private enum TapEventStatus {
+        NOT_STARTED,
+        IN_PROGRESS,
+        FINISHED
+    }
+
     public static final Duration DURATION = Duration.ofMillis(2000);
 
     public static final Duration TOO_EARLY = Duration.ofMillis(750); // 0 scores
@@ -31,7 +30,7 @@ public class TapEvent implements GameEvent {
     }
 
     @Override
-    public void start(Clock clock, Set<GamePresenter> presenters) {
+    public void start(Clock clock, GameModel gameModel) {
         // set clocks for this event
         this.clock = clock;
         beginningTime = clock.instant();

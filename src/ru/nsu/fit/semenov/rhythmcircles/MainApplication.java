@@ -62,17 +62,17 @@ public class MainApplication extends Application {
 
         RhythmMap rhythmMap = new RhythmMap();
 
-        rhythmMap.addEvent(new SlideEvent(400, 100, 100, 400, 2, Duration.ofMillis(4000)),
-                Duration.ofMillis(1000));
+//        rhythmMap.addEvent(new SlideEvent(400, 100, 100, 400, 2, Duration.ofMillis(4000)),
+//                Duration.ofMillis(1000));
 
 //        rhythmMap.addEvent(new TapEvent(500, 500), Duration.ofMillis(1000));
 
-//        for (int j = 0; j < 100; ++j) {
-//            rhythmMap.addEvent(new TapEvent(
-//                            ThreadLocalRandom.current().nextInt(ViewParams.RADIUS, SCREEN_WIDTH - ViewParams.RADIUS),
-//                            ThreadLocalRandom.current().nextInt(ViewParams.RADIUS, SCREEN_HEIGHT - ViewParams.RADIUS)),
-//                    Duration.ofMillis(j * 750));
-//        }
+        for (int j = 0; j < 100; ++j) {
+            rhythmMap.addEvent(new TapEvent(
+                            ThreadLocalRandom.current().nextInt(ViewParams.RADIUS, SCREEN_WIDTH - ViewParams.RADIUS),
+                            ThreadLocalRandom.current().nextInt(ViewParams.RADIUS, SCREEN_HEIGHT - ViewParams.RADIUS)),
+                    Duration.ofMillis(j * 750));
+        }
 
         MyGameModel myGameModel = new MyGameModel(rhythmMap);
         MyPresenter myPresenter = new MyPresenter(root, circlesGroup);

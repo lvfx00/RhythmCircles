@@ -1,30 +1,25 @@
 package ru.nsu.fit.semenov.rhythmcircles.events;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import ru.nsu.fit.semenov.rhythmcircles.GameModel;
 import ru.nsu.fit.semenov.rhythmcircles.GamePresenter;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.*;
 
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.SLIDE;
 
-enum SlideEventStatus {
-    NOT_STARTED,
-    AWAITING_TAP,
-    SLIDING,
-    FINISHED,
-    RELEASED
-}
-
 public class SlideEvent implements GameEvent {
+    private enum SlideEventStatus {
+        NOT_STARTED,
+        AWAITING_TAP,
+        SLIDING,
+        FINISHED,
+        RELEASED
+    }
+
     public static final Duration TOO_EARLY = Duration.ofMillis(750); // 0 scores
     public static final Duration REGULAR = Duration.ofMillis(500); // 100 scores
     public static final Duration PERFECT = Duration.ofMillis(250); // 300 scores
@@ -44,36 +39,15 @@ public class SlideEvent implements GameEvent {
     }
 
     @Override
-    public void start(Clock clock, Set<GamePresenter> presenters) {
+    public void start(Clock clock, GameModel gameModel) {
         // set clocks for this event
         this.clock = clock;
         beginningTime = clock.instant();
-        presentersSet = presenters;
+        this.gameModel = gameModel;
+        presentersSet = gameModel.getPresentersView();
 
         eventStatus = SlideEventStatus.AWAITING_TAP;
 
-        Timeline fiveSecondsWonder = new Timeline(new KeyFrame(javafx.util.Duration.millis(BEFORE_SLIDING.toMillis()),
-                new EventHandler<ActionEvent>() {
-
-            @Override
-            public void handle(ActionEvent event) {
-                startSliding();
-            }
-        }));
-        fiveSecondsWonder.play();
-
-        /*
-        new Timer().schedule(
-                new TimerTask() {
-
-                    @Override
-                    public void run() {
-                        startSliding();
-                    }
-                }, 0, BEFORE_SLIDING.toMillis());
-                */
-
-        /*
         // set checks for mouse position in check point time and end of event
         executor = Executors.newScheduledThreadPool(4);
 
@@ -86,7 +60,6 @@ public class SlideEvent implements GameEvent {
         }
 
         executor.schedule(this::lastPoint, BEFORE_SLIDING.toMillis() + slideDuration.toMillis(), TimeUnit.MILLISECONDS);
-        */
     }
 
 
@@ -111,7 +84,7 @@ public class SlideEvent implements GameEvent {
 
 
     public void release() {
-//        eventStatus = SlideEventStatus.RELEASED;
+        eventStatus = SlideEventStatus.RELEASED;
     }
 
     public void setInMovingCircle(boolean b) {
@@ -160,32 +133,38 @@ public class SlideEvent implements GameEvent {
     }
 
     private void startSliding() {
-        if(SlideEventStatus.AWAITING_TAP == eventStatus) {
-            eventStatus = SlideEventStatus.SLIDING;
-            for (GamePresenter gp : presentersSet) {
-                gp.startSliding(this);
+        gameModel.submitTask(() -> {
+            if (SlideEventStatus.AWAITING_TAP == eventStatus) {
+                eventStatus = SlideEventStatus.SLIDING;
+                for (GamePresenter gp : presentersSet) {
+                    gp.startSliding(this);
+                }
+                inMovingCircle = true;
             }
-            inMovingCircle = true;
-        }
+        });
     }
 
     private void checkPoint() {
-        if(inMovingCircle && SlideEventStatus.SLIDING == eventStatus) {
-            scores += 25;
-            for (GamePresenter gp : presentersSet) {
-                gp.pulse(this);
+        gameModel.submitTask(() -> {
+            if (inMovingCircle && SlideEventStatus.SLIDING == eventStatus) {
+                scores += 25;
+                for (GamePresenter gp : presentersSet) {
+                    gp.pulse(this);
+                }
             }
-        }
+        });
     }
 
     private void lastPoint() {
-        if(inMovingCircle && SlideEventStatus.SLIDING == eventStatus) {
-            scores += 100;
-            for (GamePresenter gp : presentersSet) {
-                gp.pulse(this);
+        gameModel.submitTask(() -> {
+            if (inMovingCircle && SlideEventStatus.SLIDING == eventStatus) {
+                scores += 100;
+                for (GamePresenter gp : presentersSet) {
+                    gp.pulse(this);
+                }
             }
-        }
-        eventStatus = SlideEventStatus.FINISHED;
+            eventStatus = SlideEventStatus.FINISHED;
+        });
     }
 
     private final double startX;
@@ -200,6 +179,7 @@ public class SlideEvent implements GameEvent {
     private int scores;
 
     private ScheduledExecutorService executor;
+    private GameModel gameModel;
     private Set<GamePresenter> presentersSet;
 
     private Clock clock;
