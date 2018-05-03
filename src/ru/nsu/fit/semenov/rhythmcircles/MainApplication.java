@@ -14,6 +14,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
+import ru.nsu.fit.semenov.rhythmcircles.views.ViewParams;
 
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
@@ -64,10 +65,12 @@ public class MainApplication extends Application {
         rhythmMap.addEvent(new SlideEvent(400, 100, 100 , 400, 2, Duration.ofMillis(1000)),
                 Duration.ofMillis(1000));
 
+//        rhythmMap.addEvent(new TapEvent(500, 500), Duration.ofMillis(1000));
+
 //        for (int j = 0; j < 100; ++j) {
 //            rhythmMap.addEvent(new TapEvent(
-//                            ThreadLocalRandom.current().nextInt(TapView.RADIUS * 2, SCREEN_WIDTH - TapView.RADIUS * 2),
-//                            ThreadLocalRandom.current().nextInt(TapView.RADIUS * 2, SCREEN_HEIGHT - TapView.RADIUS * 2)),
+//                            ThreadLocalRandom.current().nextInt(ViewParams.RADIUS, SCREEN_WIDTH - ViewParams.RADIUS),
+//                            ThreadLocalRandom.current().nextInt(ViewParams.RADIUS, SCREEN_HEIGHT - ViewParams.RADIUS)),
 //                    Duration.ofMillis(j * 750));
 //        }
 
