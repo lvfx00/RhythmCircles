@@ -7,9 +7,10 @@ import ru.nsu.fit.semenov.rhythmcircles.views.ViewParams;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -32,7 +33,6 @@ public class MyGameModel implements GameModel {
     public MyGameModel() {
         scoreSum = 0;
         started = false;
-        this.timeline = timeline;
     }
 
     @Override
@@ -40,6 +40,7 @@ public class MyGameModel implements GameModel {
         started = true;
         startingTime = clock.instant();
         presenter = gp;
+        this.timeline = timeline;
         lastEventsUpdate = Instant.MIN;
     }
 
@@ -49,7 +50,9 @@ public class MyGameModel implements GameModel {
         Duration elapsed = Duration.between(startingTime, currTime);
 
         // remove outdated views
-        for (GameEvent gameEvent : eventsOnScreen.keySet()) {
+        ArrayList<GameEvent> eventsToRemove = new ArrayList<>();
+
+        for (GameEvent gameEvent : eventsOnScreen) {
             if (gameEvent.isFinished()) {
                 switch (gameEvent.getEventType()) {
                     case TAP:
@@ -60,22 +63,56 @@ public class MyGameModel implements GameModel {
                         break;
                 }
                 scoreSum += gameEvent.getScores();
-                eventsOnScreen.remove(gameEvent);
+
+                eventsToRemove.add(gameEvent);
             }
         }
+        eventsOnScreen.removeAll(eventsToRemove);
 
         // add new events to queue
-        if(Duration.between(lastEventsUpdate, currTime).compareTo(UPDATE_INTERVAL) > 0) {
-            while (timeline.hasNextInFuture(elapsed, FUTURE) > 0) {
-                if
-
+        if (Duration.between(lastEventsUpdate, currTime).compareTo(UPDATE_INTERVAL) > 0) {
+            while (timeline.hasTwo(elapsed.plus(FUTURE))) {
                 EventType eventType = (ThreadLocalRandom.current().nextInt() % 2 == 1) ? TAP : SLIDE;
+                switch (eventType) {
+                    case TAP:
+                        TapEvent newTapEvent = generateTapEvent();
+                        Duration tapTime = timeline.getNext();
+
+                        eventsOnScreen.add(newTapEvent);
+                        presenter.addTapEventView(newTapEvent);
+
+                        plannedEvents.add(new Pair<>(newTapEvent, tapTime));
+                        break;
+                    case SLIDE:
+                        Duration tapTime1 = timeline.getNext();
+                        Duration tapTime2 = timeline.getNext();
+                        SlideEvent newSlideEvent = generateSlideEvent(tapTime2.minus(tapTime1));
+
+                        eventsOnScreen.add(newSlideEvent);
+                        presenter.addSlideEventView(newSlideEvent);
+
+                        plannedEvents.add(new Pair<>(newSlideEvent, tapTime1));
+                        break;
+                }
             }
+
+            if (timeline.hasNext(elapsed.plus(FUTURE))) {
+                Duration tapTime = timeline.getNext();
+                TapEvent newTapEvent = generateTapEvent();
+
+                eventsOnScreen.add(newTapEvent);
+                presenter.addTapEventView(newTapEvent);
+                plannedEvents.add(new Pair<>(newTapEvent, tapTime));
+            }
+
+            lastEventsUpdate = currTime;
         }
 
+        ArrayList<Pair<GameEvent, Duration>> toRemove = new ArrayList<>();
         // check if has planned events to start
         for (Pair<GameEvent, Duration> event : plannedEvents) {
             if (elapsed.compareTo(event.right) > 0) {
+                System.out.println("Start!!!");
                 event.left.start(clock, this);
                 switch (event.left.getEventType()) {
                     case TAP:
@@ -86,14 +123,17 @@ public class MyGameModel implements GameModel {
                         break;
                 }
             }
-            plannedEvents.remove(event);
+            toRemove.add(event);
         }
+        plannedEvents.removeAll(toRemove);
 
+        ArrayList<Consumer<GamePresenter>> tasksToRemove = new ArrayList<>();
         // update view details
         for (Consumer<GamePresenter> r : eventTasksQueue) {
             r.accept(presenter);
-            eventTasksQueue.remove(r);
+            tasksToRemove.add(r);
         }
+        eventTasksQueue.removeAll(tasksToRemove);
     }
 
 
@@ -106,7 +146,7 @@ public class MyGameModel implements GameModel {
 
             EventBounds newEventBounds = TapEvent.calcEventBounds(x, y);
             // check intersections with events on screen
-            for (GameEvent gameEvent : eventsOnScreen.keySet()) {
+            for (GameEvent gameEvent : eventsOnScreen) {
                 if (newEventBounds.intersects(gameEvent.getEventBounds())) {
                     fits = false;
                 }
@@ -136,7 +176,7 @@ public class MyGameModel implements GameModel {
             }
 
             EventBounds newEventBounds = SlideEvent.calcEventBounds(x1, y1, x2, y2);
-            for (GameEvent gameEvent : eventsOnScreen.keySet()) {
+            for (GameEvent gameEvent : eventsOnScreen) {
                 if (newEventBounds.intersects(gameEvent.getEventBounds())) {
                     fits = false;
                 }
@@ -165,30 +205,30 @@ public class MyGameModel implements GameModel {
     private GamePresenter presenter;
     private Timeline timeline;
 
-    private Queue<Pair<GameEvent, Duration>> plannedEvents = new LinkedList<>();
-    private ConcurrentHashMap<GameEvent, Boolean> eventsOnScreen = new ConcurrentHashMap<>();
+    private ArrayList<Pair<GameEvent, Duration>> plannedEvents = new ArrayList<>();
+    private HashSet<GameEvent> eventsOnScreen = new HashSet<>();
 
-    private ConcurrentLinkedQueue<Consumer<GamePresenter>> eventTasksQueue = new ConcurrentLinkedQueue<>();
+    private Queue<Consumer<GamePresenter>> eventTasksQueue = new LinkedList<>();
 
     private Instant lastEventsUpdate;
 
-    private class Pair<@NotNull L, @NotNull R> {
+    class Pair<@NotNull L, @NotNull R> {
 
         private final L left;
         private final R right;
 
-        public Pair(L left, R right) {
+        Pair(L left, R right) {
             this.left = left;
             this.right = right;
         }
 
         @NotNull
-        public L getLeft() {
+        L getLeft() {
             return left;
         }
 
         @NotNull
-        public R getRight() {
+        R getRight() {
             return right;
         }
 

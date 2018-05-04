@@ -2,6 +2,7 @@ package ru.nsu.fit.semenov.rhythmcircles;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.effect.BlendMode;
@@ -12,12 +13,6 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
-import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
-import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
-import ru.nsu.fit.semenov.rhythmcircles.views.ViewParams;
-
-import java.time.Duration;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class MainApplication extends Application {
     public static final int SCREEN_WIDTH = 1200;
@@ -61,8 +56,8 @@ public class MainApplication extends Application {
 
         MyGameModel myGameModel = new MyGameModel();
         MyPresenter myPresenter = new MyPresenter(root, circlesGroup);
-        myGameModel.registerPresenter(myPresenter);
-        myGameModel.start();
+        Timeline timeline = new Timeline("times.txt");
+        myGameModel.start(myPresenter, timeline);
 
         AnimationTimer animator = new AnimationTimer() {
             @Override
