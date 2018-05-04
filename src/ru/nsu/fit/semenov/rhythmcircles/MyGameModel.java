@@ -7,7 +7,6 @@ import ru.nsu.fit.semenov.rhythmcircles.views.ViewParams;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +25,7 @@ public class MyGameModel implements GameModel {
 
     public static final double CIRCLE_RADIUS = 70;
 
+    private static final Duration UPDATE_INTERVAL = Duration.ofSeconds(3);
     private static final Duration FUTURE = Duration.ofSeconds(5);
 
 
@@ -40,11 +40,13 @@ public class MyGameModel implements GameModel {
         started = true;
         startingTime = clock.instant();
         presenter = gp;
+        lastEventsUpdate = Instant.MIN;
     }
 
     @Override
     public void update() {
-        Duration currTime = Duration.between(startingTime, clock.instant());
+        Instant currTime = clock.instant();
+        Duration elapsed = Duration.between(startingTime, currTime);
 
         // remove outdated views
         for (GameEvent gameEvent : eventsOnScreen.keySet()) {
@@ -62,17 +64,18 @@ public class MyGameModel implements GameModel {
             }
         }
 
-        // create Event
-        while (timeline.hasNextInFuture(currTime, FUTURE)) {
+        // add new events to queue
+        if(Duration.between(lastEventsUpdate, currTime).compareTo(UPDATE_INTERVAL) > 0) {
+            while (timeline.hasNextInFuture(elapsed, FUTURE) > 0) {
+                if
 
-            EventType eventType = (ThreadLocalRandom.current().nextInt() % 2 == 1) ? TAP : SLIDE;
-
-
+                EventType eventType = (ThreadLocalRandom.current().nextInt() % 2 == 1) ? TAP : SLIDE;
+            }
         }
 
         // check if has planned events to start
         for (Pair<GameEvent, Duration> event : plannedEvents) {
-            if (currTime.compareTo(event.right) > 0) {
+            if (elapsed.compareTo(event.right) > 0) {
                 event.left.start(clock, this);
                 switch (event.left.getEventType()) {
                     case TAP:
@@ -166,6 +169,8 @@ public class MyGameModel implements GameModel {
     private ConcurrentHashMap<GameEvent, Boolean> eventsOnScreen = new ConcurrentHashMap<>();
 
     private ConcurrentLinkedQueue<Consumer<GamePresenter>> eventTasksQueue = new ConcurrentLinkedQueue<>();
+
+    private Instant lastEventsUpdate;
 
     private class Pair<@NotNull L, @NotNull R> {
 
