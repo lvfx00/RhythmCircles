@@ -4,8 +4,8 @@ import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.StrokeType;
-import ru.nsu.fit.semenov.rhythmcircles.views.animations.Animation;
-import ru.nsu.fit.semenov.rhythmcircles.views.animations.AnimationCarrier;
+import ru.nsu.fit.semenov.rhythmcircles.animations.Animation;
+import ru.nsu.fit.semenov.rhythmcircles.animations.AnimationCarrier;
 
 import java.util.ArrayList;
 

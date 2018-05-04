@@ -1,15 +1,15 @@
 package ru.nsu.fit.semenov.rhythmcircles;
 
-import javafx.geometry.Point2D;
 import org.jetbrains.annotations.NotNull;
-import ru.nsu.fit.semenov.rhythmcircles.events.GameEvent;
-import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
-import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
+import ru.nsu.fit.semenov.rhythmcircles.events.*;
 import ru.nsu.fit.semenov.rhythmcircles.views.ViewParams;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
@@ -17,102 +17,38 @@ import java.util.function.Consumer;
 
 import static ru.nsu.fit.semenov.rhythmcircles.MainApplication.SCREEN_HEIGHT;
 import static ru.nsu.fit.semenov.rhythmcircles.MainApplication.SCREEN_WIDTH;
+import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.SLIDE;
+import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.TAP;
 
 public class MyGameModel implements GameModel {
-    public static final int CIRCLE_RADIUS = 70;
+    private static final double MIN_SLIDE_LENGTH = 50;
+    private static final double MAX_SLIDE_LENGTH = 250;
 
-    // without rhythm map. Random generation
+    public static final double CIRCLE_RADIUS = 70;
+
+    private static final Duration FUTURE = Duration.ofSeconds(5);
+
+
     public MyGameModel() {
         scoreSum = 0;
         started = false;
-        hasRhythmMap = false;
-        hasPresenter = false;
-
-        nextCreation = Duration.ZERO;
-    }
-
-    public MyGameModel(@NotNull RhythmMap rhythmMap) {
-        scoreSum = 0;
-        started = false;
-        hasRhythmMap = true;
-        this.rhythmMap = rhythmMap;
+        this.timeline = timeline;
     }
 
     @Override
-    public void start() {
+    public void start(@NotNull GamePresenter gp, @NotNull Timeline timeline) {
         started = true;
         startingTime = clock.instant();
+        presenter = gp;
     }
 
     @Override
     public void update() {
-        // run submitted tasks
-        for (Consumer<GamePresenter> r : taskQueue) {
-            r.accept(presenter);
-
-            // is it a good way ????777
-            taskQueue.remove(r);
-        }
-
         Duration currTime = Duration.between(startingTime, clock.instant());
-
-        if (hasRhythmMap) {
-            // add new events from queue
-            while (rhythmMap.available(currTime)) {
-                GameEvent gameEvent = rhythmMap.getNextEvent();
-                gameEvent.start(clock, this);
-
-                switch (gameEvent.getEventType()) {
-                    case TAP:
-                        presenter.addTapEventView((TapEvent) gameEvent);
-                        break;
-                    case SLIDE:
-                        presenter.addSlideEventView((SlideEvent) gameEvent);
-                        break;
-                }
-                eventsOnScreen.put(gameEvent, Boolean.TRUE);
-            }
-
-        } else {
-            // generate
-            if (nextCreation.compareTo(currTime) < 0) {
-                int randomNum = ThreadLocalRandom.current().nextInt(0, 2);
-                switch (randomNum) {
-                    case 0:
-                        double x = ThreadLocalRandom.current().nextDouble(ViewParams.RADIUS, SCREEN_WIDTH - ViewParams.RADIUS);
-                        double y = ThreadLocalRandom.current().nextDouble(ViewParams.RADIUS, SCREEN_HEIGHT - ViewParams.RADIUS);
-                        Point2D creationPoint = new Point2D(x, y);
-
-                        boolean fits = true;
-
-                        for (GameEvent gameEvent : eventsOnScreen.keySet()) {
-                            switch (gameEvent.getEventType()) {
-                                case TAP:
-                                    if (creationPoint.distance(((TapEvent) gameEvent).getX(),
-                                            ((TapEvent) gameEvent).getY()) < CIRCLE_RADIUS * 2) {
-                                        fits = false;
-                                    }
-                                    break;
-                                case SLIDE:
-                                    break;
-                            }
-                        }
-
-                        if(fits) {
-
-                        }
-                        break;
-
-                    case 1:
-                        break;
-                }
-            }
-        }
 
         // remove outdated views
         for (GameEvent gameEvent : eventsOnScreen.keySet()) {
             if (gameEvent.isFinished()) {
-                scoreSum += gameEvent.getScores();
                 switch (gameEvent.getEventType()) {
                     case TAP:
                         presenter.removeTapEventView((TapEvent) gameEvent);
@@ -121,38 +57,147 @@ public class MyGameModel implements GameModel {
                         presenter.removeSlideEventView((SlideEvent) gameEvent);
                         break;
                 }
+                scoreSum += gameEvent.getScores();
                 eventsOnScreen.remove(gameEvent);
+            }
+        }
+
+        // create Event
+        while (timeline.hasNextInFuture(currTime, FUTURE)) {
+
+            EventType eventType = (ThreadLocalRandom.current().nextInt() % 2 == 1) ? TAP : SLIDE;
+
+
+        }
+
+        // check if has planned events to start
+        for (Pair<GameEvent, Duration> event : plannedEvents) {
+            if (currTime.compareTo(event.right) > 0) {
+                event.left.start(clock, this);
+                switch (event.left.getEventType()) {
+                    case TAP:
+                        presenter.startTapEvent((TapEvent) event.left);
+                        break;
+                    case SLIDE:
+                        presenter.startSlideEvent((SlideEvent) event.left);
+                        break;
+                }
+            }
+            plannedEvents.remove(event);
+        }
+
+        // update view details
+        for (Consumer<GamePresenter> r : eventTasksQueue) {
+            r.accept(presenter);
+            eventTasksQueue.remove(r);
+        }
+    }
+
+
+    private TapEvent generateTapEvent() {
+        while (true) {
+            boolean fits = true;
+
+            double x = ThreadLocalRandom.current().nextDouble(ViewParams.RADIUS, SCREEN_WIDTH - ViewParams.RADIUS);
+            double y = ThreadLocalRandom.current().nextDouble(ViewParams.RADIUS, SCREEN_HEIGHT - ViewParams.RADIUS);
+
+            EventBounds newEventBounds = TapEvent.calcEventBounds(x, y);
+            // check intersections with events on screen
+            for (GameEvent gameEvent : eventsOnScreen.keySet()) {
+                if (newEventBounds.intersects(gameEvent.getEventBounds())) {
+                    fits = false;
+                }
+            }
+
+            if (fits) {
+                return new TapEvent(x, y);
             }
         }
     }
 
-    @Override
-    public void registerPresenter(GamePresenter gp) {
-        if (!hasPresenter) {
-            presenter = gp;
+
+    private SlideEvent generateSlideEvent(Duration eventDuration) {
+        while (true) {
+            boolean fits = true;
+
+            double x1 = ThreadLocalRandom.current().nextDouble(ViewParams.RADIUS, SCREEN_WIDTH - ViewParams.RADIUS);
+            double y1 = ThreadLocalRandom.current().nextDouble(ViewParams.RADIUS, SCREEN_HEIGHT - ViewParams.RADIUS);
+
+            double x2 = ThreadLocalRandom.current().nextDouble(ViewParams.RADIUS, SCREEN_WIDTH - ViewParams.RADIUS);
+            double y2 = ThreadLocalRandom.current().nextDouble(ViewParams.RADIUS, SCREEN_HEIGHT - ViewParams.RADIUS);
+
+            // requirements
+            double length = Math.sqrt(Math.pow(x2 - x1, 2.0) + Math.pow(y2 - y1, 2.0));
+            if (length < MIN_SLIDE_LENGTH || length > MAX_SLIDE_LENGTH) {
+                continue;
+            }
+
+            EventBounds newEventBounds = SlideEvent.calcEventBounds(x1, y1, x2, y2);
+            for (GameEvent gameEvent : eventsOnScreen.keySet()) {
+                if (newEventBounds.intersects(gameEvent.getEventBounds())) {
+                    fits = false;
+                }
+            }
+
+            if (fits) {
+                return new SlideEvent(x1, y1, x2, y2, eventDuration);
+            }
         }
     }
 
+
     @Override
-    public void submitTask(Consumer<GamePresenter> cons) {
-        taskQueue.add(cons);
+    public void submitEventTask(Consumer<GamePresenter> cons) {
+        eventTasksQueue.add(cons);
     }
+
 
     private final Clock clock = Clock.systemUTC();
     private Instant startingTime;
-    private boolean started;
 
-    private boolean hasPresenter;
+    private boolean started;
+    private boolean finished;
+    private int scoreSum;
+
     private GamePresenter presenter;
+    private Timeline timeline;
+
+    private Queue<Pair<GameEvent, Duration>> plannedEvents = new LinkedList<>();
     private ConcurrentHashMap<GameEvent, Boolean> eventsOnScreen = new ConcurrentHashMap<>();
 
-    private ConcurrentLinkedQueue<Consumer<GamePresenter>> taskQueue = new ConcurrentLinkedQueue<>();
+    private ConcurrentLinkedQueue<Consumer<GamePresenter>> eventTasksQueue = new ConcurrentLinkedQueue<>();
 
-    // time for next creation
-    private Duration nextCreation;
+    private class Pair<@NotNull L, @NotNull R> {
 
-    private RhythmMap rhythmMap;
-    private boolean hasRhythmMap;
+        private final L left;
+        private final R right;
 
-    private int scoreSum;
+        public Pair(L left, R right) {
+            this.left = left;
+            this.right = right;
+        }
+
+        @NotNull
+        public L getLeft() {
+            return left;
+        }
+
+        @NotNull
+        public R getRight() {
+            return right;
+        }
+
+        @Override
+        public int hashCode() {
+            return left.hashCode() ^ right.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof Pair)) return false;
+            Pair pairo = (Pair) o;
+            return this.left.equals(pairo.getLeft()) &&
+                    this.right.equals(pairo.getRight());
+        }
+    }
 }

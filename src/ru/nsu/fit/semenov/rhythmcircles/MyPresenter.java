@@ -10,10 +10,10 @@ import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 import ru.nsu.fit.semenov.rhythmcircles.views.SlideView;
 import ru.nsu.fit.semenov.rhythmcircles.views.TapView;
-import ru.nsu.fit.semenov.rhythmcircles.views.animations.CompressiveRing;
-import ru.nsu.fit.semenov.rhythmcircles.views.animations.Pulse;
-import ru.nsu.fit.semenov.rhythmcircles.views.animations.ScopeCircle;
-import ru.nsu.fit.semenov.rhythmcircles.views.animations.ShowScores;
+import ru.nsu.fit.semenov.rhythmcircles.animations.CompressiveRing;
+import ru.nsu.fit.semenov.rhythmcircles.animations.Pulse;
+import ru.nsu.fit.semenov.rhythmcircles.animations.ScopeCircle;
+import ru.nsu.fit.semenov.rhythmcircles.animations.ShowScores;
 
 import java.util.HashMap;
 
@@ -24,6 +24,7 @@ public class MyPresenter implements GamePresenter {
         rootGroup = root;
     }
 
+
     @Override
     public void addTapEventView(TapEvent tapEvent) {
         TapView tapView = new TapView(tapEvent.getX(), tapEvent.getY());
@@ -33,9 +34,6 @@ public class MyPresenter implements GamePresenter {
 
         circlesGroup.getChildren().add(tapView);
 
-        // event handlers
-        tapView.getCircle().addEventFilter(MouseEvent.MOUSE_PRESSED, mouseEvent -> tapEvent.tap());
-
         // showing animation
         Timeline timeline = new Timeline();
         timeline.getKeyFrames().addAll(
@@ -43,33 +41,44 @@ public class MyPresenter implements GamePresenter {
                         new KeyValue(tapView.opacityProperty(), 1)));
         timeline.play();
 
-        // add ring animation
-        tapView.addAnimation(new CompressiveRing(tapEvent.getX(), tapEvent.getY(), Duration.millis(
-                TapEvent.TOO_EARLY.plus(TapEvent.REGULAR).plus(TapEvent.PERFECT).toMillis()), rootGroup));
+    }
+
+
+    @Override
+    public void startTapEvent(TapEvent tapEvent) {
+        if (tapEvntToView.containsKey(tapEvent)) {
+            TapView tapView = tapEvntToView.get(tapEvent);
+
+            tapView.addAnimation(new CompressiveRing(tapEvent.getX(), tapEvent.getY(), Duration.millis(
+                    TapEvent.TOO_EARLY.plus(TapEvent.REGULAR).plus(TapEvent.PERFECT).toMillis()), rootGroup));
+
+            // event handlers
+            tapView.getCircle().addEventFilter(MouseEvent.MOUSE_PRESSED, mouseEvent -> tapEvent.tap());
+        }
     }
 
 
     @Override
     public void removeTapEventView(TapEvent tapEvent) {
-        TapView tapView = tapEvntToView.get(tapEvent);
+        if (tapEvntToView.containsKey(tapEvent)) {
+            TapView tapView = tapEvntToView.get(tapEvent);
 
-        tapView.removeAllAnimations();
+            tapView.removeAllAnimations();
 
-        // show scores
-        double x = tapView.getCircle().getCenterX();
-        double y = tapView.getCircle().getCenterY();
-        tapView.addAnimation(new ShowScores(x, y, tapEvent.getScores(), rootGroup));
+            // show scores
+            tapView.addAnimation(new ShowScores(tapEvent.getX(), tapEvent.getY(), tapEvent.getScores(), rootGroup));
 
-        // fading animation
-        Timeline timeline = new Timeline();
-        timeline.getKeyFrames().addAll(
-                new KeyFrame(Duration.millis(300),
-                        new KeyValue(tapView.opacityProperty(), 0)));
-        timeline.setOnFinished(event -> {
-            rootGroup.getChildren().remove(tapView);
-            tapEvntToView.remove(tapEvent);
-        });
-        timeline.play();
+            // fading animation
+            Timeline timeline = new Timeline();
+            timeline.getKeyFrames().addAll(
+                    new KeyFrame(Duration.millis(300),
+                            new KeyValue(tapView.opacityProperty(), 0)));
+            timeline.setOnFinished(event -> {
+                rootGroup.getChildren().remove(tapView);
+                tapEvntToView.remove(tapEvent);
+            });
+            timeline.play();
+        }
     }
 
 
@@ -78,21 +87,12 @@ public class MyPresenter implements GamePresenter {
 
         SlideView slideView = new SlideView(slideEvent.getStartX(), slideEvent.getStartY(),
                 slideEvent.getFinishX(), slideEvent.getFinishY());
-
         slideView.setOpacity(0);
 
         slideEvntToView.put(slideEvent, slideView);
 
-        // TODO ???? circles group ????
         circlesGroup.getChildren().add(slideView);
 
-        // event handlers
-        slideView.getStartCircle().addEventFilter(MouseEvent.MOUSE_PRESSED, mouseEvent -> slideEvent.tap());
-        slideView.getFinishCircle().addEventFilter(MouseEvent.MOUSE_RELEASED, mouseEvent -> {
-            slideEvent.release();
-            slideEvntToView.get(slideEvent).addAnimation(
-                    new Pulse(slideEvent.getFinishX(), slideEvent.getFinishY(), rootGroup));
-        });
 
         // showing animation
         Timeline showingTimeline = new Timeline();
@@ -101,43 +101,60 @@ public class MyPresenter implements GamePresenter {
                         new KeyValue(slideView.opacityProperty(), 1)));
         showingTimeline.play();
 
-        // add ring animation
-        slideView.addAnimation(new CompressiveRing(slideEvent.getStartX(), slideEvent.getStartY(), Duration.millis(
-                TapEvent.TOO_EARLY.plus(TapEvent.REGULAR).plus(TapEvent.PERFECT).toMillis()), rootGroup));
+    }
+
+
+    @Override
+    public void startSlideEvent(SlideEvent slideEvent) {
+        if (slideEvntToView.containsKey(slideEvent)) {
+            SlideView slideView = slideEvntToView.get(slideEvent);
+
+            // add ring animation
+            slideView.addAnimation(new CompressiveRing(slideEvent.getStartX(), slideEvent.getStartY(), Duration.millis(
+                    TapEvent.TOO_EARLY.plus(TapEvent.REGULAR).plus(TapEvent.PERFECT).toMillis()), rootGroup));
+
+            // event handlers
+            slideView.getStartCircle().addEventFilter(MouseEvent.MOUSE_PRESSED, mouseEvent -> slideEvent.tap());
+            slideView.getFinishCircle().addEventFilter(MouseEvent.MOUSE_RELEASED, mouseEvent -> {
+                slideEvent.release();
+                slideEvntToView.get(slideEvent).addAnimation(
+                        new Pulse(slideEvent.getFinishX(), slideEvent.getFinishY(), rootGroup));
+            });
+        }
     }
 
 
     @Override
     public void removeSlideEventView(SlideEvent slideEvent) {
-        SlideView slideView = slideEvntToView.get(slideEvent);
+        if (slideEvntToView.containsKey(slideEvent)) {
+            SlideView slideView = slideEvntToView.get(slideEvent);
 
-        slideView.removeAllAnimations();
+            slideView.removeAllAnimations();
 
-        // show scores
-        double x = slideView.getFinishCircle().getCenterX();
-        double y = slideView.getFinishCircle().getCenterY();
-        slideView.addAnimation(new ShowScores(x, y, slideEvent.getScores(), rootGroup));
+            // show scores
+            slideView.addAnimation(new ShowScores
+                    (slideEvent.getFinishX(), slideEvent.getFinishY(), slideEvent.getScores(), rootGroup));
 
-        // fading animation
-        Timeline timeline = new Timeline();
-        timeline.getKeyFrames().addAll(
-                new KeyFrame(Duration.millis(300),
-                        new KeyValue(slideView.opacityProperty(), 0)));
-        timeline.setOnFinished(event -> {
-            rootGroup.getChildren().remove(slideView);
-            slideEvntToView.remove(slideEvent);
-        });
-        timeline.play();
+            // fading animation
+            Timeline timeline = new Timeline();
+            timeline.getKeyFrames().addAll(
+                    new KeyFrame(Duration.millis(300),
+                            new KeyValue(slideView.opacityProperty(), 0)));
+            timeline.setOnFinished(event -> {
+                rootGroup.getChildren().remove(slideView);
+                slideEvntToView.remove(slideEvent);
+            });
+            timeline.play();
+        }
     }
+
 
     @Override
     public void startSliding(SlideEvent slideEvent) {
         if (slideEvntToView.containsKey(slideEvent)) {
             slideEvntToView.get(slideEvent).addAnimation(
-                    new ScopeCircle(slideEvent.getStartX(),
-                            slideEvent.getStartY(),
-                            slideEvent.getFinishX(),
-                            slideEvent.getFinishY(),
+                    new ScopeCircle(slideEvent.getStartX(), slideEvent.getStartY(),
+                            slideEvent.getFinishX(), slideEvent.getFinishY(),
                             javafx.util.Duration.millis(slideEvent.getSlideDuration().toMillis()),
                             rootGroup));
         }

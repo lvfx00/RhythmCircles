@@ -1,5 +1,9 @@
 package ru.nsu.fit.semenov.rhythmcircles.events;
 
+import javafx.geometry.Bounds;
+import javafx.scene.Group;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import ru.nsu.fit.semenov.rhythmcircles.GameModel;
 import ru.nsu.fit.semenov.rhythmcircles.GamePresenter;
 
@@ -8,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.*;
 
+import static ru.nsu.fit.semenov.rhythmcircles.MyGameModel.CIRCLE_RADIUS;
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.SLIDE;
 
 public class SlideEvent implements GameEvent {
@@ -35,6 +40,9 @@ public class SlideEvent implements GameEvent {
         this.slideDuration = slideDuration;
         eventStatus = SlideEventStatus.NOT_STARTED;
         scores = 0;
+
+        // set event bounds
+        eventBounds = calcEventBounds(x1, y1, x2, y2);
     }
 
     @Override
@@ -59,7 +67,6 @@ public class SlideEvent implements GameEvent {
                     eventStatus = SlideEventStatus.FINISHED;
                 },
                 BEFORE_SLIDING.plus(slideDuration).plus(RELEASE_DURATION).toMillis(), TimeUnit.MILLISECONDS);
-
     }
 
     public void tap() {
@@ -86,6 +93,36 @@ public class SlideEvent implements GameEvent {
             scores += 150;
             eventStatus = SlideEventStatus.FINISHED;
         }
+    }
+
+    public static EventBounds calcEventBounds(double x1, double y1, double x2, double y2) {
+        Circle startCircle = new Circle(CIRCLE_RADIUS);
+        startCircle.setCenterX(x1);
+        startCircle.setCenterY(y1);
+
+        Circle finishCircle = new Circle(CIRCLE_RADIUS);
+        finishCircle.setCenterX(x2);
+        finishCircle.setCenterY(y2);
+
+        double rectWidth = Math.sqrt(Math.pow(x2 - x1, 2.0) + Math.pow(y2 - y1, 2.0));
+        double rectHeight = 2 * CIRCLE_RADIUS;
+
+        Rectangle slidePath = new Rectangle(rectWidth, rectHeight);
+
+        // set center of rectangle to path center
+        double rectCenterX = (x1 + x2) / 2;
+        double rectCenterY = (y1 + y2) / 2;
+        slidePath.setX(rectCenterX - rectWidth / 2);
+        slidePath.setY(rectCenterY - rectHeight / 2);
+
+        // rotate rectangle
+        double rotationDegree = Math.toDegrees(Math.atan((y2 - y1) / (x2 - x1)));
+        slidePath.setRotate(rotationDegree);
+
+        Group boundsGroup = new Group(startCircle, finishCircle, slidePath);
+        Bounds bounds = boundsGroup.getBoundsInLocal();
+
+        return new EventBounds(bounds);
     }
 
     public double getStartX() {
@@ -115,6 +152,11 @@ public class SlideEvent implements GameEvent {
     }
 
     @Override
+    public EventBounds getEventBounds() {
+        return eventBounds;
+    }
+
+    @Override
     public int getScores() {
         if (eventStatus == SlideEventStatus.FINISHED) {
             if (!executor.isShutdown()) {
@@ -132,8 +174,8 @@ public class SlideEvent implements GameEvent {
     private void startSliding() {
         if (SlideEventStatus.AWAITING_TAP == eventStatus) {
             eventStatus = SlideEventStatus.SLIDING;
-            gameModel.submitTask((GamePresenter presenter) -> {
-                    presenter.startSliding(this);
+            gameModel.submitEventTask((GamePresenter presenter) -> {
+                presenter.startSliding(this);
             });
         }
     }
@@ -144,6 +186,8 @@ public class SlideEvent implements GameEvent {
     private final double finishY;
 
     private final Duration slideDuration;
+
+    private final EventBounds eventBounds;
 
     private SlideEventStatus eventStatus;
     private int scores;

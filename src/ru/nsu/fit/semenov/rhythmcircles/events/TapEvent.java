@@ -1,11 +1,14 @@
 package ru.nsu.fit.semenov.rhythmcircles.events;
 
+import javafx.geometry.Bounds;
+import javafx.scene.shape.Circle;
 import ru.nsu.fit.semenov.rhythmcircles.GameModel;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
+import static ru.nsu.fit.semenov.rhythmcircles.MyGameModel.CIRCLE_RADIUS;
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.TAP;
 
 public class TapEvent implements GameEvent {
@@ -27,6 +30,9 @@ public class TapEvent implements GameEvent {
         this.y = y;
         scores = 0;
         eventStatus = TapEventStatus.NOT_STARTED;
+
+        // set event bounds
+        eventBounds = calcEventBounds(x, y);
     }
 
     @Override
@@ -68,9 +74,24 @@ public class TapEvent implements GameEvent {
         }
     }
 
+    public static EventBounds calcEventBounds(double x, double y) {
+        Circle startCircle = new Circle(CIRCLE_RADIUS);
+        startCircle.setCenterX(x);
+        startCircle.setCenterY(y);
+
+        Bounds bounds = startCircle.getBoundsInLocal();
+
+        return  new EventBounds(bounds);
+    }
+
     @Override
     public EventType getEventType() {
         return TAP;
+    }
+
+    @Override
+    public EventBounds getEventBounds() {
+        return eventBounds;
     }
 
     @Override
@@ -92,6 +113,8 @@ public class TapEvent implements GameEvent {
 
     private final double x;
     private final double y;
+
+    private final EventBounds eventBounds;
 
     private int scores;
 
