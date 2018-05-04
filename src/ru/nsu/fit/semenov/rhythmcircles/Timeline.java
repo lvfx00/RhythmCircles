@@ -13,7 +13,7 @@ public class Timeline {
 
             int a = 0;
             while ((text = reader.readLine()) != null) {
-                if (a % 4 == 0) {
+                if (a % 3 == 0) {
                     timeList.add((long) Double.parseDouble(text));
                 }
                 a++;
@@ -30,7 +30,7 @@ public class Timeline {
     public boolean hasTwo(Duration currTime) {
         return timeList.size() > 1 &&
                 Duration.ofMillis(timeList.peekFirst()).compareTo(currTime) < 0 &&
-                Duration.ofMillis(timeList.get(2)).compareTo(currTime) < 0;
+                Duration.ofMillis(timeList.get(1)).compareTo(currTime) < 0;
     }
 
     public boolean hasNext(Duration currTime) {

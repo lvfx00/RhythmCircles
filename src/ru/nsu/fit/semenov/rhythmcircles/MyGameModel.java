@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
@@ -112,7 +111,6 @@ public class MyGameModel implements GameModel {
         // check if has planned events to start
         for (Pair<GameEvent, Duration> event : plannedEvents) {
             if (elapsed.compareTo(event.right) > 0) {
-                System.out.println("Start!!!");
                 event.left.start(clock, this);
                 switch (event.left.getEventType()) {
                     case TAP:
@@ -122,8 +120,8 @@ public class MyGameModel implements GameModel {
                         presenter.startSlideEvent((SlideEvent) event.left);
                         break;
                 }
+                toRemove.add(event);
             }
-            toRemove.add(event);
         }
         plannedEvents.removeAll(toRemove);
 
