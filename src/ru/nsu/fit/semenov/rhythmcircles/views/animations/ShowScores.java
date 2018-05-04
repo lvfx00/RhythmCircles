@@ -29,7 +29,6 @@ public class ShowScores implements Animation {
                         new KeyValue(scoreText.xProperty(), x + 15),
                         new KeyValue(scoreText.yProperty(), y + 30)));
         timeline.setOnFinished(event -> stop());
-        finished = true;
     }
 
 
@@ -42,6 +41,7 @@ public class ShowScores implements Animation {
     public void stop() {
         timeline.stop();
         group.getChildren().remove(scoreText);
+        finished = true;
     }
 
     @Override

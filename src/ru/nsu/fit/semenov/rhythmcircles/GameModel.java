@@ -1,6 +1,6 @@
 package ru.nsu.fit.semenov.rhythmcircles;
 
-import java.util.Set;
+import java.util.function.Consumer;
 
 public interface GameModel {
     void start();
@@ -9,7 +9,5 @@ public interface GameModel {
 
     void registerPresenter(GamePresenter gamePresenter);
 
-    void submitTask(Runnable r);
-
-    Set<GamePresenter> getPresentersView();
+    void submitTask(Consumer<GamePresenter> cons);
 }

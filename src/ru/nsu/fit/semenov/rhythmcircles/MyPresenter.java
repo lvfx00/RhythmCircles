@@ -4,22 +4,18 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.scene.Group;
-import javafx.scene.effect.BoxBlur;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.StrokeType;
 import javafx.util.Duration;
 import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 import ru.nsu.fit.semenov.rhythmcircles.views.SlideView;
 import ru.nsu.fit.semenov.rhythmcircles.views.TapView;
 import ru.nsu.fit.semenov.rhythmcircles.views.animations.CompressiveRing;
+import ru.nsu.fit.semenov.rhythmcircles.views.animations.Pulse;
+import ru.nsu.fit.semenov.rhythmcircles.views.animations.ScopeCircle;
 import ru.nsu.fit.semenov.rhythmcircles.views.animations.ShowScores;
 
 import java.util.HashMap;
-
-import static ru.nsu.fit.semenov.rhythmcircles.views.ViewParams.RADIUS;
 
 public class MyPresenter implements GamePresenter {
 
@@ -92,7 +88,11 @@ public class MyPresenter implements GamePresenter {
 
         // event handlers
         slideView.getStartCircle().addEventFilter(MouseEvent.MOUSE_PRESSED, mouseEvent -> slideEvent.tap());
-        slideView.addEventFilter(MouseEvent.MOUSE_RELEASED, mouseEvent -> slideEvent.release());
+        slideView.getFinishCircle().addEventFilter(MouseEvent.MOUSE_RELEASED, mouseEvent -> {
+            slideEvent.release();
+            slideEvntToView.get(slideEvent).addAnimation(
+                    new Pulse(slideEvent.getFinishX(), slideEvent.getFinishY(), rootGroup));
+        });
 
         // showing animation
         Timeline showingTimeline = new Timeline();
@@ -114,8 +114,8 @@ public class MyPresenter implements GamePresenter {
         slideView.removeAllAnimations();
 
         // show scores
-        double x = slideView.getStartCircle().getCenterX();
-        double y = slideView.getStartCircle().getCenterY();
+        double x = slideView.getFinishCircle().getCenterX();
+        double y = slideView.getFinishCircle().getCenterY();
         slideView.addAnimation(new ShowScores(x, y, slideEvent.getScores(), rootGroup));
 
         // fading animation
@@ -133,47 +133,14 @@ public class MyPresenter implements GamePresenter {
     @Override
     public void startSliding(SlideEvent slideEvent) {
         if (slideEvntToView.containsKey(slideEvent)) {
-            System.out.println("sliding!!!");
-
-            Circle innerCircle = new Circle(RADIUS, Color.web("white", 0));
-            innerCircle.setStrokeType(StrokeType.OUTSIDE);
-            innerCircle.setStroke(Color.web("white", 0.7));
-            innerCircle.setStrokeWidth(4);
-            innerCircle.setCenterX(slideEvent.getStartX());
-            innerCircle.setCenterY(slideEvent.getStartY());
-            innerCircle.setEffect(new BoxBlur(10, 10, 3));
-            innerCircle.setMouseTransparent(true);
-
-            Circle outerCircle = new Circle(RADIUS + 30, Color.web("white", 0));
-            outerCircle.setStrokeType(StrokeType.OUTSIDE);
-            outerCircle.setStroke(Color.web("white", 0.7));
-            outerCircle.setStrokeWidth(4);
-            outerCircle.setCenterX(slideEvent.getStartX());
-            outerCircle.setCenterY(slideEvent.getStartY());
-            outerCircle.setEffect(new BoxBlur(10, 10, 3));
-            outerCircle.setMouseTransparent(true);
-
-            Group scope = new Group(innerCircle, outerCircle);
-
-            rootGroup.getChildren().addAll(scope);
-
-            Timeline slidingTimeline = new Timeline();
-            slidingTimeline.getKeyFrames().addAll(
-                    new KeyFrame(Duration.millis(slideEvent.getSlideDuration().toMillis()),
-                            new KeyValue(outerCircle.centerXProperty(), slideEvent.getFinishX()),
-                            new KeyValue(outerCircle.centerYProperty(), slideEvent.getFinishY()),
-                            new KeyValue(innerCircle.centerXProperty(), slideEvent.getFinishX()),
-                            new KeyValue(innerCircle.centerYProperty(), slideEvent.getFinishY())));
-
-            slidingTimeline.setOnFinished(event -> rootGroup.getChildren().remove(scope));
-            slidingTimeline.play();
+            slideEvntToView.get(slideEvent).addAnimation(
+                    new ScopeCircle(slideEvent.getStartX(),
+                            slideEvent.getStartY(),
+                            slideEvent.getFinishX(),
+                            slideEvent.getFinishY(),
+                            javafx.util.Duration.millis(slideEvent.getSlideDuration().toMillis()),
+                            rootGroup));
         }
-    }
-
-    @Override
-    public void pulse(SlideEvent slideEvent) {
-
-
     }
 
     private final Group rootGroup;

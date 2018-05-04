@@ -20,8 +20,8 @@ import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MainApplication extends Application {
-    public static final int SCREEN_WIDTH = 800;
-    public static final int SCREEN_HEIGHT = 600;
+    public static final int SCREEN_WIDTH = 1200;
+    public static final int SCREEN_HEIGHT = 900;
 
     public static void main(String[] args) {
         launch(args);
@@ -59,22 +59,7 @@ public class MainApplication extends Application {
         tempGroup.setBlendMode(BlendMode.HARD_LIGHT);
         root.getChildren().add(blendModeGroup);
 
-
-        RhythmMap rhythmMap = new RhythmMap();
-
-//        rhythmMap.addEvent(new SlideEvent(400, 100, 100, 400, 2, Duration.ofMillis(4000)),
-//                Duration.ofMillis(1000));
-
-//        rhythmMap.addEvent(new TapEvent(500, 500), Duration.ofMillis(1000));
-
-        for (int j = 0; j < 100; ++j) {
-            rhythmMap.addEvent(new TapEvent(
-                            ThreadLocalRandom.current().nextInt(ViewParams.RADIUS, SCREEN_WIDTH - ViewParams.RADIUS),
-                            ThreadLocalRandom.current().nextInt(ViewParams.RADIUS, SCREEN_HEIGHT - ViewParams.RADIUS)),
-                    Duration.ofMillis(j * 750));
-        }
-
-        MyGameModel myGameModel = new MyGameModel(rhythmMap);
+        MyGameModel myGameModel = new MyGameModel();
         MyPresenter myPresenter = new MyPresenter(root, circlesGroup);
         myGameModel.registerPresenter(myPresenter);
         myGameModel.start();
