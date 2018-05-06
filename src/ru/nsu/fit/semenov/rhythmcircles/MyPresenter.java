@@ -5,6 +5,9 @@ import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.scene.Group;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.StrokeType;
 import javafx.util.Duration;
 import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
@@ -12,13 +15,13 @@ import ru.nsu.fit.semenov.rhythmcircles.views.SlideView;
 import ru.nsu.fit.semenov.rhythmcircles.views.TapView;
 import ru.nsu.fit.semenov.rhythmcircles.animations.CompressiveRing;
 import ru.nsu.fit.semenov.rhythmcircles.animations.Pulse;
-import ru.nsu.fit.semenov.rhythmcircles.animations.ScopeCircle;
 import ru.nsu.fit.semenov.rhythmcircles.animations.ShowScores;
 
 import java.util.HashMap;
 
-public class MyPresenter implements GamePresenter {
+import static ru.nsu.fit.semenov.rhythmcircles.views.ViewParams.RADIUS;
 
+public class MyPresenter implements GamePresenter {
     public MyPresenter(Group root, Group cg) {
         circlesGroup = cg;
         rootGroup = root;
@@ -86,13 +89,12 @@ public class MyPresenter implements GamePresenter {
     public void addSlideEventView(SlideEvent slideEvent) {
 
         SlideView slideView = new SlideView(slideEvent.getStartX(), slideEvent.getStartY(),
-                slideEvent.getFinishX(), slideEvent.getFinishY());
+                slideEvent.getFinishX(), slideEvent.getFinishY(), slideEvent.getSlideDuration());
         slideView.setOpacity(0);
 
         slideEvntToView.put(slideEvent, slideView);
 
         circlesGroup.getChildren().add(slideView);
-
 
         // showing animation
         Timeline showingTimeline = new Timeline();
@@ -101,6 +103,42 @@ public class MyPresenter implements GamePresenter {
                         new KeyValue(slideView.opacityProperty(), 1)));
         showingTimeline.play();
 
+        Circle movingCircle = slideView.getMovingCircle();
+
+        movingCircle.setOnMousePressed(t -> {
+            orgSceneX = t.getSceneX();
+            orgSceneY = t.getSceneY();
+            Circle c = (Circle) t.getSource();
+            orgTranslateX = c.getTranslateX();
+            orgTranslateY = c.getTranslateY();
+            slideEvent.tap();
+        });
+
+        movingCircle.setOnMouseDragged(t -> {
+            double offsetX = t.getSceneX() - orgSceneX;
+            double offsetY = t.getSceneY() - orgSceneY;
+            double newTranslateX = orgTranslateX + offsetX;
+            double newTranslateY = orgTranslateY + offsetY;
+
+
+            Circle c = (Circle) t.getSource();
+            c.setTranslateX(newTranslateX);
+            c.setTranslateY(newTranslateY);
+
+            if (Math.sqrt(Math.pow(c.getCenterX() + newTranslateX - slideView.getScopeCircleX(), 2.0) +
+                    Math.pow(c.getCenterY() + newTranslateY - slideView.getScopeCircleY(), 2.0)) < RADIUS) {
+                slideEvent.setMouseInCircle(true);
+                c.setFill(Color.web("white", 0.4));
+            } else {
+                slideEvent.setMouseInCircle(false);
+                c.setFill(Color.web("white", 0));
+            }
+        });
+
+        movingCircle.setOnMouseReleased(t -> {
+            removeSlideEventView(slideEvent);
+            slideEvent.release();
+        });
     }
 
 
@@ -113,13 +151,6 @@ public class MyPresenter implements GamePresenter {
             slideView.addAnimation(new CompressiveRing(slideEvent.getStartX(), slideEvent.getStartY(), Duration.millis(
                     TapEvent.TOO_EARLY.plus(TapEvent.REGULAR).plus(TapEvent.PERFECT).toMillis()), rootGroup));
 
-            // event handlers
-            slideView.getStartCircle().addEventFilter(MouseEvent.MOUSE_PRESSED, mouseEvent -> slideEvent.tap());
-            slideView.getFinishCircle().addEventFilter(MouseEvent.MOUSE_RELEASED, mouseEvent -> {
-                slideEvent.release();
-                slideEvntToView.get(slideEvent).addAnimation(
-                        new Pulse(slideEvent.getFinishX(), slideEvent.getFinishY(), rootGroup));
-            });
         }
     }
 
@@ -152,11 +183,16 @@ public class MyPresenter implements GamePresenter {
     @Override
     public void startSliding(SlideEvent slideEvent) {
         if (slideEvntToView.containsKey(slideEvent)) {
-            slideEvntToView.get(slideEvent).addAnimation(
-                    new ScopeCircle(slideEvent.getStartX(), slideEvent.getStartY(),
-                            slideEvent.getFinishX(), slideEvent.getFinishY(),
-                            javafx.util.Duration.millis(slideEvent.getSlideDuration().toMillis()),
-                            rootGroup));
+            SlideView slideView = slideEvntToView.get(slideEvent);
+            slideView.startSlidingAnimation();
+        }
+    }
+
+    @Override
+    public void pulse(SlideEvent slideEvent) {
+        if (slideEvntToView.containsKey(slideEvent)) {
+            SlideView slideView = slideEvntToView.get(slideEvent);
+            slideView.addAnimation(new Pulse(slideEvent.getFinishX(), slideEvent.getFinishY(), circlesGroup));
         }
     }
 
@@ -165,4 +201,7 @@ public class MyPresenter implements GamePresenter {
 
     private HashMap<TapEvent, TapView> tapEvntToView = new HashMap<>();
     private HashMap<SlideEvent, SlideView> slideEvntToView = new HashMap<>();
+
+    private double orgSceneX, orgSceneY;
+    private double orgTranslateX, orgTranslateY;
 }

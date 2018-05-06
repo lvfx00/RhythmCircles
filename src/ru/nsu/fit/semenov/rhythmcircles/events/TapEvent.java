@@ -19,6 +19,7 @@ public class TapEvent implements GameEvent {
     }
 
     public static final Duration DURATION = Duration.ofMillis(2000);
+    public static final Duration BEFORE_TAP = Duration.ofMillis(1375);
 
     public static final Duration TOO_EARLY = Duration.ofMillis(750); // 0 scores
     public static final Duration REGULAR = Duration.ofMillis(500); // 100 scores

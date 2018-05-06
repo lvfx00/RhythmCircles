@@ -17,4 +17,6 @@ public interface GamePresenter {
     void removeSlideEventView(SlideEvent slideEvent);
 
     void startSliding(SlideEvent slideEvent);
+
+    void pulse(SlideEvent slideEvent);
 }

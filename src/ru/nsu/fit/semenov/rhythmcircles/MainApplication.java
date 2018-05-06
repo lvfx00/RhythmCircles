@@ -2,11 +2,12 @@ package ru.nsu.fit.semenov.rhythmcircles;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.effect.BoxBlur;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -56,8 +57,13 @@ public class MainApplication extends Application {
 
         MyGameModel myGameModel = new MyGameModel();
         MyPresenter myPresenter = new MyPresenter(root, circlesGroup);
-        Timeline timeline = new Timeline("times.txt");
+        Timeline timeline = new Timeline("resources/times.txt");
+
+        Media m = new Media("file:///" + System.getProperty("user.dir").replace('\\', '/') + "/" + "resources/osu.mp3");
+        MediaPlayer player = new MediaPlayer(m);
+
         myGameModel.start(myPresenter, timeline);
+        player.play();
 
         AnimationTimer animator = new AnimationTimer() {
             @Override

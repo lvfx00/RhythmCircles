@@ -9,8 +9,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
@@ -18,15 +17,17 @@ import static ru.nsu.fit.semenov.rhythmcircles.MainApplication.SCREEN_HEIGHT;
 import static ru.nsu.fit.semenov.rhythmcircles.MainApplication.SCREEN_WIDTH;
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.SLIDE;
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.TAP;
+import static ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent.BEFORE_SLIDING;
+import static ru.nsu.fit.semenov.rhythmcircles.events.TapEvent.BEFORE_TAP;
 
 public class MyGameModel implements GameModel {
-    private static final double MIN_SLIDE_LENGTH = 50;
-    private static final double MAX_SLIDE_LENGTH = 250;
+    private static final double MIN_SLIDE_LENGTH = 150;
+    private static final double MAX_SLIDE_LENGTH = 450;
 
     public static final double CIRCLE_RADIUS = 70;
 
     private static final Duration UPDATE_INTERVAL = Duration.ofSeconds(3);
-    private static final Duration FUTURE = Duration.ofSeconds(5);
+    private static final Duration FUTURE = Duration.ofSeconds(3);
 
 
     public MyGameModel() {
@@ -206,7 +207,7 @@ public class MyGameModel implements GameModel {
     private ArrayList<Pair<GameEvent, Duration>> plannedEvents = new ArrayList<>();
     private HashSet<GameEvent> eventsOnScreen = new HashSet<>();
 
-    private Queue<Consumer<GamePresenter>> eventTasksQueue = new LinkedList<>();
+    private ConcurrentLinkedQueue<Consumer<GamePresenter>> eventTasksQueue = new ConcurrentLinkedQueue<>();
 
     private Instant lastEventsUpdate;
 

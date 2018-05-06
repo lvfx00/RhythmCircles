@@ -20,17 +20,15 @@ public class SlideEvent implements GameEvent {
         NOT_STARTED,
         AWAITING_TAP,
         SLIDING,
-        AWAITING_RELEASE,
         FINISHED,
     }
 
-    private static final Duration TOO_EARLY = Duration.ofMillis(750);
-    private static final Duration REGULAR = Duration.ofMillis(500);
-    private static final Duration PERFECT = Duration.ofMillis(250);
+    private static final Duration TAP_TOO_EARLY = Duration.ofMillis(750);
+    private static final Duration TAP_REGULAR = Duration.ofMillis(500);
+    private static final Duration TAP_PERFECT = Duration.ofMillis(250);
+    private static final Duration TAP_TOO_LATE = Duration.ofMillis(500);
 
-    private static final Duration RELEASE_DURATION = Duration.ofMillis(250);
-
-    private static final Duration BEFORE_SLIDING = Duration.ofMillis(1500);
+    public static final Duration BEFORE_SLIDING = Duration.ofMillis(1375);
 
     public SlideEvent(double x1, double y1, double x2, double y2, Duration slideDuration) {
         this.startX = x1;
@@ -40,7 +38,6 @@ public class SlideEvent implements GameEvent {
         this.slideDuration = slideDuration;
         eventStatus = SlideEventStatus.NOT_STARTED;
         scores = 0;
-
         // set event bounds
         eventBounds = calcEventBounds(x1, y1, x2, y2);
     }
@@ -50,49 +47,56 @@ public class SlideEvent implements GameEvent {
         // set clocks for this event
         this.clock = clock;
         beginningTime = clock.instant();
-        this.gameModel = gameModel;
-
         eventStatus = SlideEventStatus.AWAITING_TAP;
 
         executor = Executors.newSingleThreadScheduledExecutor();
-
-        executor.schedule(this::startSliding, BEFORE_SLIDING.toMillis(), TimeUnit.MILLISECONDS);
+        executor.schedule(() -> {
+                    if (SlideEventStatus.AWAITING_TAP == eventStatus) {
+                        eventStatus = SlideEventStatus.SLIDING;
+                        gameModel.submitEventTask((GamePresenter presenter) -> presenter.startSliding(this));
+                    }
+                }, BEFORE_SLIDING.toMillis(), TimeUnit.MILLISECONDS);
 
         executor.schedule(() -> {
-                    eventStatus = SlideEventStatus.AWAITING_RELEASE;
-                },
-                BEFORE_SLIDING.plus(slideDuration).minus(RELEASE_DURATION).toMillis(), TimeUnit.MILLISECONDS);
-
-        executor.schedule(() -> {
+                    if(mouseInCircle) {
+                        scores += 150;
+                        gameModel.submitEventTask((GamePresenter presenter) -> presenter.pulse(this));
+                    }
                     eventStatus = SlideEventStatus.FINISHED;
-                },
-                BEFORE_SLIDING.plus(slideDuration).plus(RELEASE_DURATION).toMillis(), TimeUnit.MILLISECONDS);
+                }, BEFORE_SLIDING.plus(slideDuration).toMillis(), TimeUnit.MILLISECONDS);
     }
 
     public void tap() {
         if (eventStatus == SlideEventStatus.AWAITING_TAP) {
 
-            if (Duration.between(beginningTime, clock.instant()).compareTo(TOO_EARLY) < 0) {
+            if (Duration.between(beginningTime, clock.instant()).compareTo(TAP_TOO_EARLY) < 0) {
                 scores += 0;
 
             } else if (Duration.between(beginningTime, clock.instant()).
-                    compareTo(TOO_EARLY.plus(REGULAR)) < 0) {
-                scores += 50;
+                    compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR)) < 0) {
+                scores += 100;
+                mouseInCircle = true;
                 startSliding();
 
             } else if (Duration.between(beginningTime, clock.instant()).
-                    compareTo(TOO_EARLY.plus(REGULAR).plus(PERFECT)) < 0) {
-                scores += 150;
+                    compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR).plus(TAP_PERFECT)) < 0) {
+                scores += 200;
+                mouseInCircle = true;
                 startSliding();
+
+            } else if (Duration.between(beginningTime, clock.instant()).
+                    compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR).plus(TAP_PERFECT).plus(TAP_TOO_LATE)) < 0) {
+                scores += 50;
             }
         }
     }
 
     public void release() {
-        if (eventStatus == SlideEventStatus.AWAITING_RELEASE) {
-            scores += 150;
-            eventStatus = SlideEventStatus.FINISHED;
-        }
+        eventStatus = SlideEventStatus.FINISHED;
+    }
+
+    public void setMouseInCircle(boolean b) {
+        mouseInCircle = b;
     }
 
     public static EventBounds calcEventBounds(double x1, double y1, double x2, double y2) {
@@ -172,12 +176,6 @@ public class SlideEvent implements GameEvent {
     }
 
     private void startSliding() {
-        if (SlideEventStatus.AWAITING_TAP == eventStatus) {
-            eventStatus = SlideEventStatus.SLIDING;
-            gameModel.submitEventTask((GamePresenter presenter) -> {
-                presenter.startSliding(this);
-            });
-        }
     }
 
     private final double startX;
@@ -190,10 +188,10 @@ public class SlideEvent implements GameEvent {
     private final EventBounds eventBounds;
 
     private SlideEventStatus eventStatus;
+    private boolean mouseInCircle;
     private int scores;
 
     private ScheduledExecutorService executor;
-    private GameModel gameModel;
 
     private Clock clock;
     private Instant beginningTime;
