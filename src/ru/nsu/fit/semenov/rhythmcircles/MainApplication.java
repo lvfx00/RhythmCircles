@@ -31,8 +31,9 @@ public class MainApplication extends Application {
         scene.getStylesheets().add("ru/nsu/fit/semenov/rhythmcircles/style.css");
         primaryStage.setScene(scene);
 
-        Group circlesGroup = new Group();
-        circlesGroup.setEffect(new BoxBlur(10, 10, 3));
+        // group for all rainbow-like elements
+        Group rainbowGroup = new Group();
+        rainbowGroup.setEffect(new BoxBlur(5, 5, 5));
 
         Rectangle colors = new Rectangle(scene.getWidth(), scene.getHeight(),
                 new LinearGradient(0f, 1f, 1f, 0f, true, CycleMethod.NO_CYCLE,
@@ -49,14 +50,18 @@ public class MainApplication extends Application {
 
 
         Group tempGroup = new Group(new Rectangle(scene.getWidth(), scene.getHeight(),
-                Color.BLACK), circlesGroup);
+                Color.BLACK), rainbowGroup);
 
         Group blendModeGroup = new Group(colors, tempGroup);
         tempGroup.setBlendMode(BlendMode.HARD_LIGHT);
         root.getChildren().add(blendModeGroup);
 
+        Group mainGroup = new Group();
+        root.getChildren().addAll(mainGroup);
+
+
         MyGameModel myGameModel = new MyGameModel();
-        MyPresenter myPresenter = new MyPresenter(root, circlesGroup);
+        MyPresenter myPresenter = new MyPresenter(mainGroup, rainbowGroup);
         Timeline timeline = new Timeline("resources/times.txt");
 
         Media m = new Media("file:///" + System.getProperty("user.dir").replace('\\', '/') + "/" + "resources/osu.mp3");

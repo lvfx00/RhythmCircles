@@ -4,6 +4,7 @@ import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.StrokeType;
+import javafx.scene.text.Text;
 import ru.nsu.fit.semenov.rhythmcircles.animations.Animation;
 import ru.nsu.fit.semenov.rhythmcircles.animations.AnimationCarrier;
 
@@ -13,16 +14,14 @@ import static ru.nsu.fit.semenov.rhythmcircles.views.ViewParams.RADIUS;
 
 public class TapView extends Group implements AnimationCarrier {
     public TapView(double x, double y) {
-        circle = new Circle(RADIUS, Color.web("white", 0.05));
-
+        circle = new Circle(RADIUS, Color.web("white", 0.15));
         circle.setStrokeType(StrokeType.OUTSIDE);
-        circle.setStroke(Color.web("white", 0.6));
-        circle.setStrokeWidth(4);
-
+        circle.setStroke(Color.web("white", 1));
+        circle.setStrokeWidth(5);
         circle.setCenterX(x);
         circle.setCenterY(y);
 
-        super.getChildren().add(circle);
+        super.getChildren().addAll(circle);
     }
 
     public Circle getCircle() {
@@ -46,5 +45,6 @@ public class TapView extends Group implements AnimationCarrier {
     }
 
     private ArrayList<Animation> animationList = new ArrayList<>();
+    private Text numberText;
     private Circle circle;
 }

@@ -18,14 +18,14 @@ public class Pulse implements Animation {
         finished = false;
         this.group = group;
 
-        ring = new Circle(0, Color.web("white", 0));
+        ring = new Circle(0, Color.web("white", 1));
         ring.setCenterX(x);
         ring.setCenterY(y);
 
         ring.setStrokeType(StrokeType.OUTSIDE);
         ring.setStroke(Color.web("yellow", 0.7));
         ring.setStrokeWidth(2);
-        ring.setEffect(new BoxBlur(10, 10, 3));
+        ring.setEffect(new BoxBlur(3, 3, 3));
 
         ring.setMouseTransparent(true);
 

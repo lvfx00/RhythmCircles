@@ -1,14 +1,16 @@
+
 package ru.nsu.fit.semenov.rhythmcircles.views;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.scene.Group;
-import javafx.scene.effect.BoxBlur;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
+import javafx.scene.text.Text;
 import javafx.util.Duration;
 import ru.nsu.fit.semenov.rhythmcircles.animations.Animation;
 import ru.nsu.fit.semenov.rhythmcircles.animations.AnimationCarrier;
@@ -22,67 +24,75 @@ public class SlideView extends Group implements AnimationCarrier {
     public SlideView(double x1, double y1, double x2, double y2, java.time.Duration slidingDuration) {
         this.slidingDuration = Duration.millis(slidingDuration.toMillis());
 
-        startCircle = new Circle(RADIUS, Color.web("white", 0.05));
-        finishCircle = new Circle(RADIUS, Color.web("white", 0.05));
-
+        startCircle = new Circle(RADIUS, Color.web("white", 0.15));
         startCircle.setStrokeType(StrokeType.OUTSIDE);
-        startCircle.setStroke(Color.web("white", 0.6));
-        startCircle.setStrokeWidth(4);
-
-        finishCircle.setStrokeType(StrokeType.OUTSIDE);
-        finishCircle.setStroke(Color.web("white", 0.6));
-        finishCircle.setStrokeWidth(4);
-
+        startCircle.setStroke(Color.web("white", 1));
+        startCircle.setStrokeWidth(5);
         startCircle.setCenterX(x1);
         startCircle.setCenterY(y1);
+
+        finishCircle = new Circle(RADIUS, Color.web("white", 0.15));
+        finishCircle.setStrokeType(StrokeType.OUTSIDE);
+        finishCircle.setStroke(Color.web("white", 1));
+        finishCircle.setStrokeWidth(5);
         finishCircle.setCenterX(x2);
         finishCircle.setCenterY(y2);
 
-        double rectWidth = Math.sqrt(Math.pow(x2 - x1, 2.0) + Math.pow(y2 - y1, 2.0));
-        double rectHeight = 2 * ViewParams.RADIUS;
+//        double rectWidth = Math.sqrt(Math.pow(x2 - x1, 2.0) + Math.pow(y2 - y1, 2.0));
+//        double rectHeight = 2 * ViewParams.RADIUS;
+//        pathRectangle = new Rectangle(rectWidth, rectHeight, Color.web("white", 0.05));
+//        pathRectangle.setStrokeType(StrokeType.OUTSIDE);
+//        pathRectangle.setStroke(Color.web("white", 1));
+//        pathRectangle.setStrokeWidth(5);
+//
+//        // set center of rectangle to path center
+//        double rectCenterX = (x1 + x2) / 2;
+//        double rectCenterY = (y1 + y2) / 2;
+//        pathRectangle.setX(rectCenterX - rectWidth / 2);
+//        pathRectangle.setY(rectCenterY - rectHeight / 2);
+//
+//        // rotate rectangle
+//        pathRectangle.setRotate(Math.toDegrees(rotationDegree));
 
-        pathRectangle = new Rectangle(rectWidth, rectHeight, Color.web("white", 0.05));
+        double rotationDegree = Math.atan((y2 - y1) / (x2 - x1));
+        double dx = Math.sin(rotationDegree) * (RADIUS + 2.5);
+        double dy = Math.cos(rotationDegree) * (RADIUS + 2.5);
 
-        pathRectangle.setStrokeType(StrokeType.OUTSIDE);
-        pathRectangle.setStroke(Color.web("white", 0.6));
-        pathRectangle.setStrokeWidth(4);
+        Line firstLine = new Line(x1 + dx, y1 - dy, x2 + dx, y2 - dy);
+        firstLine.setFill(Color.web("white", 0.05));
+        firstLine.setStrokeType(StrokeType.OUTSIDE);
+        firstLine.setStroke(Color.web("white", 1));
+        firstLine.setStrokeWidth(2.5);
 
-        // set center of rectangle to path center
-        double rectCenterX = (x1 + x2) / 2;
-        double rectCenterY = (y1 + y2) / 2;
-        pathRectangle.setX(rectCenterX - rectWidth / 2);
-        pathRectangle.setY(rectCenterY - rectHeight / 2);
+        Line secondLine = new Line(x1 - dx, y1 + dy, x2 - dx, y2 + dy);
+        secondLine.setStrokeType(StrokeType.OUTSIDE);
+        secondLine.setStroke(Color.web("white", 1));
+        secondLine.setStrokeWidth(2.5);
 
-        // rotate rectangle
-        double rotationDegree = Math.toDegrees(Math.atan((y2 - y1) / (x2 - x1)));
-        pathRectangle.setRotate(rotationDegree);
-
-        super.getChildren().addAll(pathRectangle, startCircle, finishCircle);
+        super.getChildren().addAll(startCircle, finishCircle, firstLine, secondLine);
 
         // scope animation
         innerScopeCircle = new Circle(RADIUS, Color.web("white", 0));
         innerScopeCircle.setStrokeType(StrokeType.OUTSIDE);
-        innerScopeCircle.setStroke(Color.web("white", 0.7));
-        innerScopeCircle.setStrokeWidth(4);
+        innerScopeCircle.setStroke(Color.web("white", 1));
+        innerScopeCircle.setStrokeWidth(5);
         innerScopeCircle.setCenterX(x1);
         innerScopeCircle.setCenterY(y1);
-        innerScopeCircle.setEffect(new BoxBlur(10, 10, 3));
         innerScopeCircle.setMouseTransparent(true);
 
         outerScopeCircle = new Circle(RADIUS + 30, Color.web("white", 0));
         outerScopeCircle.setStrokeType(StrokeType.OUTSIDE);
-        outerScopeCircle.setStroke(Color.web("white", 0.7));
-        outerScopeCircle.setStrokeWidth(4);
+        outerScopeCircle.setStroke(Color.web("white", 1));
+        outerScopeCircle.setStrokeWidth(5);
         outerScopeCircle.setCenterX(x1);
         outerScopeCircle.setCenterY(y1);
-        outerScopeCircle.setEffect(new BoxBlur(10, 10, 3));
         outerScopeCircle.setMouseTransparent(true);
 
         // add moving circle
         movingCircle = new Circle(RADIUS, Color.web("white", 0));
         movingCircle.setStrokeType(StrokeType.OUTSIDE);
         movingCircle.setStroke(Color.web("white", 1));
-        movingCircle.setStrokeWidth(4);
+        movingCircle.setStrokeWidth(5);
         movingCircle.setCenterX(x1);
         movingCircle.setCenterY(y1);
 
@@ -172,5 +182,6 @@ public class SlideView extends Group implements AnimationCarrier {
     private Circle outerScopeCircle;
     private Circle movingCircle;
     private Rectangle pathRectangle;
+    private Text numberText;
     private Duration slidingDuration;
 }

@@ -79,7 +79,7 @@ public class MyGameModel implements GameModel {
                         Duration tapTime = timeline.getNext();
 
                         eventsOnScreen.add(newTapEvent);
-                        presenter.addTapEventView(newTapEvent);
+                        presenter.addTapEventView(newTapEvent, ThreadLocalRandom.current().nextInt(1, 5));
 
                         plannedEvents.add(new Pair<>(newTapEvent, tapTime));
                         break;
@@ -89,7 +89,7 @@ public class MyGameModel implements GameModel {
                         SlideEvent newSlideEvent = generateSlideEvent(tapTime2.minus(tapTime1));
 
                         eventsOnScreen.add(newSlideEvent);
-                        presenter.addSlideEventView(newSlideEvent);
+                        presenter.addSlideEventView(newSlideEvent, ThreadLocalRandom.current().nextInt(1, 5));
 
                         plannedEvents.add(new Pair<>(newSlideEvent, tapTime1));
                         break;
@@ -101,7 +101,7 @@ public class MyGameModel implements GameModel {
                 TapEvent newTapEvent = generateTapEvent();
 
                 eventsOnScreen.add(newTapEvent);
-                presenter.addTapEventView(newTapEvent);
+                presenter.addTapEventView(newTapEvent, ThreadLocalRandom.current().nextInt(1, 5));
                 plannedEvents.add(new Pair<>(newTapEvent, tapTime));
             }
 

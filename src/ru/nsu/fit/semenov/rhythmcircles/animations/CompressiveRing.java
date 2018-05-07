@@ -23,9 +23,9 @@ public class CompressiveRing implements Animation {
         ring.setCenterY(y);
 
         ring.setStrokeType(StrokeType.OUTSIDE);
-        ring.setStroke(Color.web("white", 0.7));
-        ring.setStrokeWidth(2);
-        ring.setEffect(new BoxBlur(10, 10, 3));
+        ring.setStroke(Color.web("white", 1));
+        ring.setStrokeWidth(5);
+        ring.setEffect(new BoxBlur(5, 5, 5));
 
         ring.setMouseTransparent(true);
 
