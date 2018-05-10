@@ -1,6 +1,7 @@
 package ru.nsu.fit.semenov.rhythmcircles;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import ru.nsu.fit.semenov.rhythmcircles.events.*;
 import ru.nsu.fit.semenov.rhythmcircles.views.ViewParams;
 
@@ -15,19 +16,15 @@ import java.util.function.Consumer;
 
 import static ru.nsu.fit.semenov.rhythmcircles.MainApplication.SCREEN_HEIGHT;
 import static ru.nsu.fit.semenov.rhythmcircles.MainApplication.SCREEN_WIDTH;
-import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.SLIDE;
-import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.TAP;
-import static ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent.BEFORE_SLIDING;
-import static ru.nsu.fit.semenov.rhythmcircles.events.TapEvent.BEFORE_TAP;
 
 public class MyGameModel implements GameModel {
-    private static final double MIN_SLIDE_LENGTH = 150;
-    private static final double MAX_SLIDE_LENGTH = 450;
+    private static final double MIN_SLIDE_LENGTH = 250;
+    private static final double MAX_SLIDE_LENGTH = 350;
 
     public static final double CIRCLE_RADIUS = 70;
 
-    private static final Duration UPDATE_INTERVAL = Duration.ofSeconds(3);
-    private static final Duration FUTURE = Duration.ofSeconds(3);
+    private static final Duration UPDATE_INTERVAL = Duration.ofSeconds(2);
+    private static final Duration FUTURE = Duration.ofSeconds(2);
 
 
     public MyGameModel() {
@@ -36,11 +33,11 @@ public class MyGameModel implements GameModel {
     }
 
     @Override
-    public void start(@NotNull GamePresenter gp, @NotNull Timeline timeline) {
+    public void start(@NotNull GamePresenter gp, @NotNull TimeMap timeMap) {
         started = true;
         startingTime = clock.instant();
         presenter = gp;
-        this.timeline = timeline;
+        this.timeMap = timeMap;
         lastEventsUpdate = Instant.MIN;
     }
 
@@ -56,10 +53,10 @@ public class MyGameModel implements GameModel {
             if (gameEvent.isFinished()) {
                 switch (gameEvent.getEventType()) {
                     case TAP:
-                        presenter.removeTapEventView((TapEvent) gameEvent);
+                        presenter.remove((TapEvent) gameEvent);
                         break;
                     case SLIDE:
-                        presenter.removeSlideEventView((SlideEvent) gameEvent);
+                        presenter.remove((SlideEvent) gameEvent);
                         break;
                 }
                 scoreSum += gameEvent.getScores();
@@ -71,42 +68,38 @@ public class MyGameModel implements GameModel {
 
         // add new events to queue
         if (Duration.between(lastEventsUpdate, currTime).compareTo(UPDATE_INTERVAL) > 0) {
-            while (timeline.hasTwo(elapsed.plus(FUTURE))) {
-                EventType eventType = (ThreadLocalRandom.current().nextInt() % 2 == 1) ? TAP : SLIDE;
-                switch (eventType) {
-                    case TAP:
-                        TapEvent newTapEvent = generateTapEvent();
-                        Duration tapTime = timeline.getNext();
+            while (timeMap.hasNext(elapsed.plus(FUTURE))) {
+                Duration beatTime = timeMap.getNext();
+                int rand = ThreadLocalRandom.current().nextInt(1, 8);
+                // tap event
+                if (rand < 4) {
+                    TapEvent newTapEvent = generateTapEvent();
+                    eventsOnScreen.add(newTapEvent);
+                    presenter.add(newTapEvent, ThreadLocalRandom.current().nextInt(1, 5));
+                    plannedEvents.add(new Pair<>(newTapEvent, beatTime.minus(TapEvent.BEFORE_TAP)));
+                }
+                // one-diraction sliding
+                else if (rand < 6) {
+                    Duration slideDuration = timeMap.getNext().minus(beatTime);
+                    SlideEvent newSlideEvent = generateSlideEvent(slideDuration, null);
+                    eventsOnScreen.add(newSlideEvent);
+                    presenter.add(newSlideEvent, ThreadLocalRandom.current().nextInt(1, 5));
+                    plannedEvents.add(new Pair<>(newSlideEvent, beatTime.minus(TapEvent.BEFORE_TAP)));
 
-                        eventsOnScreen.add(newTapEvent);
-                        presenter.addTapEventView(newTapEvent, ThreadLocalRandom.current().nextInt(1, 5));
+                }
+                // two-direction sliding
+                else {
+                    Duration slideForwardDuration = timeMap.getNext().minus(beatTime);
+                    Duration slideBackwardDuration = timeMap.getNext().minus(slideForwardDuration).minus(beatTime);
 
-                        plannedEvents.add(new Pair<>(newTapEvent, tapTime));
-                        break;
-                    case SLIDE:
-                        Duration tapTime1 = timeline.getNext();
-                        Duration tapTime2 = timeline.getNext();
-                        SlideEvent newSlideEvent = generateSlideEvent(tapTime2.minus(tapTime1));
-
-                        eventsOnScreen.add(newSlideEvent);
-                        presenter.addSlideEventView(newSlideEvent, ThreadLocalRandom.current().nextInt(1, 5));
-
-                        plannedEvents.add(new Pair<>(newSlideEvent, tapTime1));
-                        break;
+                    SlideEvent newSlideEvent = generateSlideEvent(slideForwardDuration, slideBackwardDuration);
+                    eventsOnScreen.add(newSlideEvent);
+                    presenter.add(newSlideEvent, ThreadLocalRandom.current().nextInt(1, 5));
+                    plannedEvents.add(new Pair<>(newSlideEvent, beatTime.minus(TapEvent.BEFORE_TAP)));
                 }
             }
-
-            if (timeline.hasNext(elapsed.plus(FUTURE))) {
-                Duration tapTime = timeline.getNext();
-                TapEvent newTapEvent = generateTapEvent();
-
-                eventsOnScreen.add(newTapEvent);
-                presenter.addTapEventView(newTapEvent, ThreadLocalRandom.current().nextInt(1, 5));
-                plannedEvents.add(new Pair<>(newTapEvent, tapTime));
-            }
-
-            lastEventsUpdate = currTime;
         }
+
 
         ArrayList<Pair<GameEvent, Duration>> toRemove = new ArrayList<>();
         // check if has planned events to start
@@ -115,10 +108,10 @@ public class MyGameModel implements GameModel {
                 event.left.start(clock, this);
                 switch (event.left.getEventType()) {
                     case TAP:
-                        presenter.startTapEvent((TapEvent) event.left);
+                        presenter.start((TapEvent) event.left);
                         break;
                     case SLIDE:
-                        presenter.startSlideEvent((SlideEvent) event.left);
+                        presenter.start((SlideEvent) event.left);
                         break;
                 }
                 toRemove.add(event);
@@ -158,7 +151,7 @@ public class MyGameModel implements GameModel {
     }
 
 
-    private SlideEvent generateSlideEvent(Duration eventDuration) {
+    private SlideEvent generateSlideEvent(@NotNull Duration forward, @Nullable Duration backward) {
         while (true) {
             boolean fits = true;
 
@@ -182,11 +175,10 @@ public class MyGameModel implements GameModel {
             }
 
             if (fits) {
-                return new SlideEvent(x1, y1, x2, y2, eventDuration);
+                return new SlideEvent(x1, y1, x2, y2, forward, backward);
             }
         }
     }
-
 
     @Override
     public void submitEventTask(Consumer<GamePresenter> cons) {
@@ -202,7 +194,7 @@ public class MyGameModel implements GameModel {
     private int scoreSum;
 
     private GamePresenter presenter;
-    private Timeline timeline;
+    private TimeMap timeMap;
 
     private ArrayList<Pair<GameEvent, Duration>> plannedEvents = new ArrayList<>();
     private HashSet<GameEvent> eventsOnScreen = new HashSet<>();

@@ -18,13 +18,13 @@ public class CompressiveRing implements Animation {
         finished = false;
         this.group = group;
 
-        ring = new Circle(150, Color.web("white", 0));
+        ring = new Circle(200, Color.web("white", 0));
         ring.setCenterX(x);
         ring.setCenterY(y);
 
         ring.setStrokeType(StrokeType.OUTSIDE);
         ring.setStroke(Color.web("white", 1));
-        ring.setStrokeWidth(5);
+        ring.setStrokeWidth(3);
         ring.setEffect(new BoxBlur(5, 5, 5));
 
         ring.setMouseTransparent(true);

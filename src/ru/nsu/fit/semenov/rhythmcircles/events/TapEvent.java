@@ -18,13 +18,13 @@ public class TapEvent implements GameEvent {
         FINISHED
     }
 
-    public static final Duration DURATION = Duration.ofMillis(2000);
-    public static final Duration BEFORE_TAP = Duration.ofMillis(1375);
+    public static final Duration DURATION = Duration.ofMillis(1350);
+    public static final Duration BEFORE_TAP = Duration.ofMillis(925);
 
-    public static final Duration TOO_EARLY = Duration.ofMillis(750); // 0 scores
-    public static final Duration REGULAR = Duration.ofMillis(500); // 100 scores
-    public static final Duration PERFECT = Duration.ofMillis(250); // 300 scores
-    public static final Duration TOO_LATE = Duration.ofMillis(500); // 0 scores
+    public static final Duration TAP_TOO_EARLY = Duration.ofMillis(500); // 0 scores
+    public static final Duration TAP_REGULAR = Duration.ofMillis(300); // 100 scores
+    public static final Duration TAP_PERFECT = Duration.ofMillis(250); // 300 scores
+    public static final Duration TAP_TOO_LATE = Duration.ofMillis(300); // 0 scores
 
     public TapEvent(double x, double y) {
         this.x = x;
@@ -55,19 +55,19 @@ public class TapEvent implements GameEvent {
     public void tap() {
         if (eventStatus == TapEventStatus.IN_PROGRESS) {
 
-            if (Duration.between(beginningTime, clock.instant()).compareTo(TOO_EARLY) < 0) {
+            if (Duration.between(beginningTime, clock.instant()).compareTo(TAP_TOO_EARLY) < 0) {
                 scores = 0;
 
             } else if (Duration.between(beginningTime, clock.instant()).
-                    compareTo(TOO_EARLY.plus(REGULAR)) < 0) {
+                    compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR)) < 0) {
                 scores = 100;
 
             } else if (Duration.between(beginningTime, clock.instant()).
-                    compareTo(TOO_EARLY.plus(REGULAR).plus(PERFECT)) < 0) {
+                    compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR).plus(TAP_PERFECT)) < 0) {
                 scores = 300;
 
             } else if (Duration.between(beginningTime, clock.instant()).
-                    compareTo(TOO_EARLY.plus(REGULAR).plus(PERFECT).plus(TOO_LATE)) < 0) {
+                    compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR).plus(TAP_PERFECT).plus(TAP_TOO_LATE)) < 0) {
                 scores = 50;
             }
 

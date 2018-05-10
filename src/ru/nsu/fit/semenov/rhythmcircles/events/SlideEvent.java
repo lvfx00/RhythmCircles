@@ -14,6 +14,7 @@ import java.util.concurrent.*;
 
 import static ru.nsu.fit.semenov.rhythmcircles.MyGameModel.CIRCLE_RADIUS;
 import static ru.nsu.fit.semenov.rhythmcircles.events.EventType.SLIDE;
+import static ru.nsu.fit.semenov.rhythmcircles.events.TapEvent.*;
 
 public class SlideEvent implements GameEvent {
     private enum SlideEventStatus {
@@ -23,48 +24,60 @@ public class SlideEvent implements GameEvent {
         FINISHED,
     }
 
-    private static final Duration TAP_TOO_EARLY = Duration.ofMillis(750);
-    private static final Duration TAP_REGULAR = Duration.ofMillis(500);
-    private static final Duration TAP_PERFECT = Duration.ofMillis(250);
-    private static final Duration TAP_TOO_LATE = Duration.ofMillis(500);
-
-    public static final Duration BEFORE_SLIDING = Duration.ofMillis(1375);
-
-    public SlideEvent(double x1, double y1, double x2, double y2, Duration slideDuration) {
+    public SlideEvent(double x1, double y1, double x2, double y2, Duration forward, Duration backward) {
         this.startX = x1;
         this.startY = y1;
         this.finishX = x2;
         this.finishY = y2;
-        this.slideDuration = slideDuration;
+        this.forward = forward;
+        if (null == backward) {
+            hasBackward = false;
+        } else {
+            hasBackward = true;
+            this.backward = backward;
+        }
         eventStatus = SlideEventStatus.NOT_STARTED;
         scores = 0;
-        // set event bounds
         eventBounds = calcEventBounds(x1, y1, x2, y2);
     }
 
+
     @Override
     public void start(Clock clock, GameModel gameModel) {
-        // set clocks for this event
         this.clock = clock;
         beginningTime = clock.instant();
         eventStatus = SlideEventStatus.AWAITING_TAP;
+        this.gameModel = gameModel;
 
         executor = Executors.newSingleThreadScheduledExecutor();
-        executor.schedule(() -> {
-                    if (SlideEventStatus.AWAITING_TAP == eventStatus) {
-                        eventStatus = SlideEventStatus.SLIDING;
-                        gameModel.submitEventTask((GamePresenter presenter) -> presenter.startSliding(this));
-                    }
-                }, BEFORE_SLIDING.toMillis(), TimeUnit.MILLISECONDS);
+        executor.schedule(this::startSliding, BEFORE_TAP.toMillis(), TimeUnit.MILLISECONDS);
 
-        executor.schedule(() -> {
-                    if(mouseInCircle) {
-                        scores += 150;
-                        gameModel.submitEventTask((GamePresenter presenter) -> presenter.pulse(this));
-                    }
-                    eventStatus = SlideEventStatus.FINISHED;
-                }, BEFORE_SLIDING.plus(slideDuration).toMillis(), TimeUnit.MILLISECONDS);
+        if (hasBackward) {
+            executor.schedule(() -> {
+                if (SlideEventStatus.SLIDING == eventStatus && mouseInCircle) {
+                    scores += 100;
+                    gameModel.submitEventTask((GamePresenter presenter) -> presenter.pulse(finishX, finishY));
+                }
+            }, BEFORE_TAP.plus(forward).toMillis(), TimeUnit.MILLISECONDS);
+            executor.schedule(() -> {
+                if (SlideEventStatus.SLIDING == eventStatus && mouseInCircle) {
+                    scores += 100;
+                    gameModel.submitEventTask((GamePresenter presenter) -> presenter.pulse(startX, startY));
+                }
+                eventStatus = SlideEventStatus.FINISHED;
+            }, BEFORE_TAP.plus(forward).plus(backward).toMillis(), TimeUnit.MILLISECONDS);
+
+        } else {
+            executor.schedule(() -> {
+                if (SlideEventStatus.SLIDING == eventStatus && mouseInCircle) {
+                    scores += 150;
+                    gameModel.submitEventTask((GamePresenter presenter) -> presenter.pulse(finishX, finishY));
+                }
+                eventStatus = SlideEventStatus.FINISHED;
+            }, BEFORE_TAP.plus(forward).toMillis(), TimeUnit.MILLISECONDS);
+        }
     }
+
 
     public void tap() {
         if (eventStatus == SlideEventStatus.AWAITING_TAP) {
@@ -75,29 +88,40 @@ public class SlideEvent implements GameEvent {
             } else if (Duration.between(beginningTime, clock.instant()).
                     compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR)) < 0) {
                 scores += 100;
-                mouseInCircle = true;
-                startSliding();
 
             } else if (Duration.between(beginningTime, clock.instant()).
                     compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR).plus(TAP_PERFECT)) < 0) {
-                scores += 200;
-                mouseInCircle = true;
-                startSliding();
-
-            } else if (Duration.between(beginningTime, clock.instant()).
-                    compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR).plus(TAP_PERFECT).plus(TAP_TOO_LATE)) < 0) {
-                scores += 50;
+                scores += 150;
             }
+
+            mouseInCircle = true;
+            startSliding();
+
+        } else if (eventStatus == SlideEventStatus.SLIDING &&
+                Duration.between(beginningTime, clock.instant()).
+                        compareTo(TAP_TOO_EARLY.plus(TAP_REGULAR).plus(TAP_PERFECT).plus(TAP_TOO_LATE)) < 0) {
+
+            scores += 50;
         }
     }
+
+    private void startSliding() {
+        if (SlideEventStatus.AWAITING_TAP == eventStatus) {
+            eventStatus = SlideEventStatus.SLIDING;
+            gameModel.submitEventTask((GamePresenter presenter) -> presenter.startSliding(this));
+        }
+    }
+
 
     public void release() {
         eventStatus = SlideEventStatus.FINISHED;
     }
 
+
     public void setMouseInCircle(boolean b) {
         mouseInCircle = b;
     }
+
 
     public static EventBounds calcEventBounds(double x1, double y1, double x2, double y2) {
         Circle startCircle = new Circle(CIRCLE_RADIUS);
@@ -128,6 +152,7 @@ public class SlideEvent implements GameEvent {
 
         return new EventBounds(bounds);
     }
+
 
     public double getStartX() {
         return startX;
@@ -171,11 +196,16 @@ public class SlideEvent implements GameEvent {
         return 0;
     }
 
-    public Duration getSlideDuration() {
-        return slideDuration;
+    public Duration getSlideForwardDuration() {
+        return forward;
     }
 
-    private void startSliding() {
+    public Duration getSlideBackwardDuration() {
+        return backward;
+    }
+
+    public boolean isHasBackward() {
+        return hasBackward;
     }
 
     private final double startX;
@@ -183,7 +213,10 @@ public class SlideEvent implements GameEvent {
     private final double finishX;
     private final double finishY;
 
-    private final Duration slideDuration;
+    private Duration forward;
+    private Duration backward;
+    private GameModel gameModel;
+    private final boolean hasBackward;
 
     private final EventBounds eventBounds;
 
@@ -195,5 +228,4 @@ public class SlideEvent implements GameEvent {
 
     private Clock clock;
     private Instant beginningTime;
-
 }

@@ -15,6 +15,8 @@ import javafx.scene.paint.Stop;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
+import java.time.Duration;
+
 public class MainApplication extends Application {
     public static final int SCREEN_WIDTH = 1200;
     public static final int SCREEN_HEIGHT = 900;
@@ -62,12 +64,12 @@ public class MainApplication extends Application {
 
         MyGameModel myGameModel = new MyGameModel();
         MyPresenter myPresenter = new MyPresenter(mainGroup, rainbowGroup);
-        Timeline timeline = new Timeline("resources/times.txt");
 
         Media m = new Media("file:///" + System.getProperty("user.dir").replace('\\', '/') + "/" + "resources/osu.mp3");
         MediaPlayer player = new MediaPlayer(m);
 
-        myGameModel.start(myPresenter, timeline);
+        TimeMap timeMap = new TimeMap(Duration.ofMillis(2650), Duration.ofMillis(650), Duration.ofSeconds(240));
+        myGameModel.start(myPresenter, timeMap);
         player.play();
 
         AnimationTimer animator = new AnimationTimer() {

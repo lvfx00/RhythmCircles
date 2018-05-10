@@ -4,19 +4,19 @@ import ru.nsu.fit.semenov.rhythmcircles.events.SlideEvent;
 import ru.nsu.fit.semenov.rhythmcircles.events.TapEvent;
 
 public interface GamePresenter {
-    void addTapEventView(TapEvent tapEvent, int num);
+    void add(TapEvent event, int orderingNum);
 
-    void startTapEvent(TapEvent tapEvent);
+    void start(TapEvent event);
 
-    void removeTapEventView(TapEvent tapEvent);
+    void remove(TapEvent event);
 
-    void addSlideEventView(SlideEvent slideEvent, int num);
+    void add(SlideEvent event, int orderingNum);
 
-    void startSlideEvent(SlideEvent slideEvent);
+    void start(SlideEvent event);
 
-    void removeSlideEventView(SlideEvent slideEvent);
+    void remove(SlideEvent event);
 
-    void startSliding(SlideEvent slideEvent);
+    void startSliding(SlideEvent event);
 
-    void pulse(SlideEvent slideEvent);
+    void pulse(double x, double y);
 }
